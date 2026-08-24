@@ -1,0 +1,197 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ provider.username }} - مقدم خدمة{% endblock %}
+
+{% block content %}
+<!-- قسم الغلاف -->
+<header class="provider-hero text-white">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-3 text-center mb-3 mb-md-0">
+                {% if provider_profile.profile_image %}
+                <img src="{{ provider_profile.profile_image.url }}" alt="{{ provider.username }}"
+                    class="rounded-circle border border-white border-3 provider-avatar"
+                    style="width: 150px; height: 150px; object-fit: cover;">
+                {% else %}
+                <div class="rounded-circle bg-white text-primary d-inline-flex align-items-center justify-content-center border border-white border-3"
+                    style="width: 150px; height: 150px; font-size: 4rem;">
+                    <i class="bi bi-person-fill"></i>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="col-md-9">
+                <div class="d-flex align-items-center gap-2"><h1 class="fw-bold mb-2">{{ provider.get_full_name|default:provider.username }}</h1>{% if provider_profile.verification_status == 'verified' %}<span class="status-badge status-badge--success"><i class="bi bi-patch-check-fill"></i> موثّق</span>{% endif %}</div>
+                <p class="mb-2">
+                    <i class="bi bi-briefcase ms-2"></i>
+                    {% for item in provider_profile.specializations.all %}{{ item.name }}{% if not forloop.last %}، {% endif %}{% empty %}مقدم خدمة{% endfor %}
+                </p>
+                <p class="mb-3">
+                    <i class="bi bi-geo-alt ms-2"></i>
+                    {{ provider_profile.city|default:provider.city|default:"غير محدد" }}{% if provider_profile.district %} - {{ provider_profile.district }}{% endif %}
+                </p>
+
+                <!-- التقييم -->
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <div>
+                        <i class="bi bi-star-fill text-warning"></i>
+                        {% if rating_count %}<span class="fw-bold">{{ average_rating_real|floatformat:1 }}</span><span class="small"> من 5 — {{ rating_count }} تقييم</span>{% else %}<span class="small">لا توجد تقييمات بعد</span>{% endif %}
+                    </div>
+                    <div class="vr"></div>
+                    <div>
+                        <i class="bi bi-clipboard-check ms-2"></i>
+                        <span class="fw-bold">{{ completed_orders_real }}</span>
+                        <span class="small">طلب مكتمل</span>
+                    </div>
+                    <div class="vr"></div>
+                    <div>
+                        <i class="bi bi-clock-history ms-2"></i>
+                        <span class="fw-bold">{{ provider_profile.experience_years }}</span>
+                        <span class="small">سنوات خبرة</span>
+                    </div>
+                </div>
+
+                <!-- الحالة -->
+                {% if provider_profile.verification_status == 'verified' %}
+                <span class="badge bg-info me-2"><i class="bi bi-patch-check ms-1"></i>مقدم خدمة موثّق</span>
+                {% endif %}
+                {% if provider_profile.is_available %}
+                <span class="badge bg-success">
+                    <i class="bi bi-check-circle ms-1"></i>
+                    متاح للطلبات
+                </span>
+                {% else %}
+                <span class="badge bg-secondary">
+                    <i class="bi bi-x-circle ms-1"></i>
+                    غير متاح حالياً
+                </span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- المحتوى -->
+<div class="container py-5">
+    <div class="row">
+        <!-- العمود الرئيسي -->
+        <div class="col-lg-8">
+            <!-- النبذة التعريفية -->
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-body">
+                    <h2 class="profile-section-title mb-3">
+                        <i class="bi bi-person-lines-fill ms-2"></i>
+                        نبذة تعريفية
+                    </h2>
+                    {% if provider_profile.bio %}
+                    <p class="text-muted" style="white-space: pre-line;">{{ provider_profile.bio }}</p>
+                    {% else %}
+                    <p class="text-muted fst-italic">لم يضف مقدم الخدمة نبذة تعريفية بعد.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-body">
+                    <h2 id="step-services" class="profile-section-title mb-3"><i class="bi bi-grid-3x3-gap ms-2"></i>الخدمات المقدمة</h2>
+                    {% for service in provider_services %}
+                    <div class="border rounded p-3 mb-2"><div class="d-flex justify-content-between gap-2"><strong>{{ service.title }}</strong><span class="badge bg-light text-dark">{{ service.get_price_display }}</span></div><p class="text-muted mb-2">{{ service.description|truncatewords:20 }}</p>{% if user.is_authenticated and user.is_customer %}<a class="btn btn-sm btn-primary" href="{% url 'orders:order_create' service.pk %}">طلب الخدمة</a>{% endif %}</div>
+                    {% empty %}<p class="text-muted fst-italic">لا توجد خدمات منشورة حالياً.</p>{% endfor %}
+                </div>
+            </div>
+
+            <div class="card shadow-sm border-0 mb-4"><div class="card-body"><h2 class="profile-section-title mb-3"><i class="bi bi-star ms-2"></i>آراء العملاء</h2>{% for review in provider_reviews %}{% include 'reviews/partials/review_card.html' %}{% empty %}<p class="text-muted fst-italic">لا توجد تقييمات بعد.</p>{% endfor %}</div></div>
+        </div>
+
+        <!-- الشريط الجانبي -->
+        <div class="col-lg-4">
+            <!-- معلومات الاتصال -->
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-body">
+                    <h2 class="profile-section-title mb-3">معلومات الاتصال</h2>
+
+                    {% if provider.email %}
+                    <div class="mb-3">
+                        <small class="text-muted d-block mb-1">البريد الإلكتروني</small>
+                        <p class="mb-0">
+                            <i class="bi bi-envelope ms-2 text-primary"></i>
+                            {{ provider.email }}
+                        </p>
+                    </div>
+                    {% endif %}
+
+                    {% if provider.phone %}
+                    <div class="mb-3">
+                        <small class="text-muted d-block mb-1">رقم الجوال</small>
+                        <p class="mb-0">
+                            <i class="bi bi-phone ms-2 text-primary"></i>
+                            {{ provider.phone }}
+                        </p>
+                    </div>
+                    {% endif %}
+
+                    {% if provider_profile.address %}
+                    <div class="mb-3">
+                        <small class="text-muted d-block mb-1">العنوان</small>
+                        <p class="mb-0" style="white-space: pre-line;">
+                            <i class="bi bi-geo-alt ms-2 text-primary"></i>
+                            {{ provider_profile.address }}
+                        </p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if provider_profile.latitude and provider_profile.longitude %}
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-body">
+                    <h2 class="profile-section-title mb-2">موقع مقدم الخدمة</h2>
+                    <p class="text-muted small mb-2">{{ provider_profile.city }}{% if provider_profile.district %} - {{ provider_profile.district }}{% endif %}</p>
+                    <div id="public-provider-map" style="height: 280px; border-radius: 12px; border: 1px solid #ddd;" data-lat="{{ provider_profile.latitude }}" data-lng="{{ provider_profile.longitude }}"></div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- معلومات السعر -->
+            {% if provider_profile.hourly_rate %}
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-body text-center">
+                    <h6 class="fw-bold mb-3">السعر بالساعة</h6>
+                    <h2 class="text-primary mb-0">{{ provider_profile.hourly_rate }} ريال</h2>
+                    <p class="text-muted small mb-0">قابل للتفاوض</p>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- زر طلب الخدمة -->
+            <div class="card shadow-sm border-0 bg-primary text-white">
+                <div class="card-body text-center">
+                    <h6 class="mb-3">هل أنت مهتم بالعمل مع هذا المقدم؟</h6>
+                    {% if user.is_authenticated %}
+                    {% if provider_profile.is_available %}
+                    <a href="#step-services" class="btn btn-light btn-lg w-100"><i class="bi bi-send ms-2"></i>اختر خدمة من القائمة</a>
+                    {% else %}
+                    <button class="btn btn-secondary btn-lg w-100" disabled>
+                        <i class="bi bi-x-circle ms-2"></i>
+                        غير متاح حالياً
+                    </button>
+                    {% endif %}
+                    {% else %}
+                    <a href="{% url 'accounts:login' %}?next={{ request.path }}" class="btn btn-light btn-lg w-100">
+                        <i class="bi bi-box-arrow-in-left ms-2"></i>
+                        سجل الدخول للطلب
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'vendor/leaflet/leaflet.css' %}">
+{% endblock %}
+{% block extra_js %}
+<script src="{% static 'vendor/leaflet/leaflet.js' %}"></script><script>(function(){const el=document.getElementById('public-provider-map');if(!el||!window.ServiceMarketplaceOfflineMap)return;const lat=parseFloat(el.dataset.lat),lng=parseFloat(el.dataset.lng);if(Number.isFinite(lat)&&Number.isFinite(lng)){window.ServiceMarketplaceOfflineMap(el,{initial:{lat,lng},readonly:true});}})();</script>
+{% endblock %}

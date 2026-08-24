@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% block title %}مستندات التوثيق{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0"><i class="bi bi-file-earmark-lock ms-2"></i>مستندات التوثيق</h1>
+    <a href="{% url 'accounts:provider_profile_edit' %}" class="btn btn-outline-secondary">العودة للملف</a>
+  </div>
+
+  <div class="alert alert-info">
+    المستندات تحفظ في مساحة خاصة ولا تظهر للعملاء. يمكنك إعادة رفع/استبدال المستند إذا طلبت الإدارة مستندات إضافية.
+  </div>
+
+  <div class="card shadow-sm mb-4">
+    <div class="card-header bg-primary text-white">المستندات المطلوبة</div>
+    <div class="card-body">
+      <ul class="mb-0">
+        {% for doc_type in required_types %}
+          <li>{% if doc_type.code in missing_document_codes %}<span class="text-danger">✗</span>{% else %}<span class="text-success">✓</span>{% endif %} {{ doc_type.name }}</li>
+        {% empty %}
+          <li>لا توجد مستندات إلزامية محددة من الإدارة حالياً.</li>
+        {% endfor %}
+      </ul>
+      {% if missing_documents %}<p class="text-danger mt-2 mb-0">يوجد مستندات ناقصة يجب رفعها قبل إرسال الحساب للمراجعة.</p>{% endif %}
+    </div>
+  </div>
+
+  <form method="post" enctype="multipart/form-data" class="card card-body shadow-sm mb-4 loading-form">
+    {% csrf_token %}
+    <div class="upload-dropzone" data-upload-dropzone>
+      <i class="bi bi-cloud-arrow-up"></i><strong>اسحب المستند هنا أو اختره من جهازك</strong>
+      <span>PDF أو صور أو مستندات Word — حتى 5MB</span>
+      {{ form.document_type|as_crispy_field }}
+      {{ form.file|as_crispy_field }}
+      <output class="upload-file-name" aria-live="polite"></output>
+    </div>
+    <button class="btn btn-primary align-self-start"><i class="bi bi-upload ms-2"></i>رفع المستند للمراجعة</button>
+  </form>
+
+  <div class="table-responsive card shadow-sm">
+    <table class="table mb-0 align-middle">
+      <thead><tr><th>النوع</th><th>اسم الملف</th><th>الحالة</th><th>ملاحظة الإدارة</th><th>تاريخ الرفع</th><th></th></tr></thead>
+      <tbody>
+      {% for doc in documents %}
+        <tr>
+          <td>{{ doc.document_type }}</td>
+          <td>{{ doc.file.name|cut:'provider_documents/' }}</td>
+          <td><span class="badge bg-secondary">{{ doc.get_status_display }}</span></td>
+          <td>{{ doc.review_note|default:'-' }}</td>
+          <td>{{ doc.created_at|date:'Y-m-d H:i' }}</td>
+          <td><a class="btn btn-sm btn-outline-primary" href="{% url 'accounts:provider_document_download' doc.pk %}">تحميل</a></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6" class="text-center text-muted py-4">لا توجد مستندات مرفوعة.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}<script>
+document.querySelectorAll('[data-upload-dropzone]').forEach(zone => { const input=zone.querySelector('input[type=file]'), output=zone.querySelector('output'); if(!input)return; input.addEventListener('change',()=>output.textContent=input.files[0]?`تم اختيار: ${input.files[0].name}`:''); ['dragenter','dragover'].forEach(event=>zone.addEventListener(event,e=>{e.preventDefault();zone.classList.add('is-dragging')}));['dragleave','drop'].forEach(event=>zone.addEventListener(event,e=>{e.preventDefault();zone.classList.remove('is-dragging')}));zone.addEventListener('drop',e=>{if(e.dataTransfer.files.length){input.files=e.dataTransfer.files;input.dispatchEvent(new Event('change'))}});});
+</script>{% endblock %}

@@ -1,0 +1,236 @@
+{% extends 'base.html' %}
+
+{% block title %}طلب #{{ order.order_number }}{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <!-- Header -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h3 class="fw-bold mb-2">{{ order.title }}</h3>
+                    <p class="text-muted mb-0">
+                        <i class="bi bi-hash"></i> {{ order.order_number }}
+                    </p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <span class="badge {{order.get_status_badge_class}} fs-6 mb-2">{{ order.get_status_display }}</span>
+                    <h4 class="text-primary mb-0">{{ order.agreed_price }} ريال</h4>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- المحتوى الرئيسي -->
+        <div class="col-lg-8">
+            <!-- التفاصيل -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h5 class="fw-bold">تفاصيل الطلب</h5>
+                    <p class="text-muted">{{ order.description }}</p>
+                </div>
+            </div>
+
+            <!-- التسليمات -->
+            {% if deliveries %}
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h5 class="fw-bold mb-3">التسليمات</h5>
+                    {% for delivery in deliveries %}
+                    <div class="p-3 bg-light rounded mb-2">
+                        <p class="mb-2"><strong>{{ delivery.description }}</strong></p>
+                        <p class="small text-muted mb-2">
+                            <i class="bi bi-file-earmark"></i>
+                            <a href="{{ delivery.file.url }}" target="_blank">تحميل الملف</a>
+                        </p>
+                        <p class="small text-muted mb-0">{{ delivery.delivered_at|date:"Y-m-d H:i" }}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- الرسائل -->
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h5 class="fw-bold mb-3">الرسائل</h5>
+
+                    {% if messages_list %}
+                    <div class="mb-3" style="max-height: 400px; overflow-y: auto;">
+                        {% for msg in messages_list %}
+                        <div class="mb-3 {% if msg.sender == user %}text-end{% endif %}">
+                            <div class="d-inline-block p-2 rounded {% if msg.sender == user %}bg-primary text-white{% else %}bg-light{% endif %}"
+                                style="max-width: 70%;">
+                                <strong class="small">{{ msg.sender.username }}</strong>
+                                <p class="mb-1">{{ msg.message }}</p>
+                                <small class="{% if msg.sender == user %}text-white-50{% else %}text-muted{% endif %}">
+                                    {{ msg.created_at|date:"H:i" }}
+                                </small>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <!-- نموذج إرسال رسالة -->
+                    <form method="post" action="{% url 'orders:send_message' order.order_number %}">
+                        {% csrf_token %}
+                        <div class="input-group">
+                            {{ message_form.message }}
+                            <button type="submit" class="btn btn-primary">إرسال</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- الشريط الجانبي -->
+        <div class="col-lg-4">
+            <!-- الإجراءات -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h6 class="fw-bold mb-3">الإجراءات</h6>
+
+                    {% if user == order.provider %}
+                    {% if order.can_be_accepted %}
+                    <a href="{% url 'orders:order_accept' order.order_number %}" class="btn btn-success w-100 mb-2">
+                        <i class="bi bi-check-circle"></i> قبول الطلب
+                    </a>
+                    {% endif %}
+
+                    {% if order.can_be_started %}
+                    <a href="{% url 'orders:order_start' order.order_number %}" class="btn btn-primary w-100 mb-2">
+                        <i class="bi bi-play-circle"></i> بدء العمل
+                    </a>
+                    {% endif %}
+
+                    {% if order.can_be_delivered %}
+                    <button class="btn btn-info w-100 mb-2" data-bs-toggle="modal" data-bs-target="#deliveryModal">
+                        <i class="bi bi-upload"></i> تسليم العمل
+                    </button>
+                    {% endif %}
+                    {% endif %}
+
+                    {% if user == order.customer and order.status == 'payment_pending' %}
+                    <form method="post" action="{% url 'payments:payment_create' order.order_number %}" class="mb-2">
+                        {% csrf_token %}
+                        <label class="form-label fw-bold">اختر محفظة مقدم الخدمة</label>
+                        {% for provider_wallet in provider_wallets %}
+                        <div class="form-check border rounded p-2 mb-2" style="border-right: 5px solid {{ provider_wallet.wallet.color }} !important;">
+                            <input class="form-check-input" type="radio" name="provider_wallet" id="provider_wallet_{{ provider_wallet.pk }}" value="{{ provider_wallet.pk }}" required>
+                            <label class="form-check-label" for="provider_wallet_{{ provider_wallet.pk }}"><span style="color: {{ provider_wallet.wallet.color }}">●</span> {{ provider_wallet.wallet.name }}<br><small>رقم الحساب: {{ provider_wallet.account_number }}</small></label>
+                        </div>
+                        {% empty %}<div class="alert alert-warning">لا توجد محافظ مفعلة لهذا المقدم.</div>{% endfor %}
+                        <button class="btn btn-primary w-100" {% if not provider_wallets %}disabled{% endif %}><i class="bi bi-credit-card"></i> الدفع الآن</button>
+                    </form>
+                    {% endif %}
+                    {% if latest_payment %}
+                    <a class="btn btn-outline-primary w-100 mb-2" href="{% url 'payments:payment_detail' latest_payment.pk %}">تفاصيل الدفع / مراجعة السند</a>
+                    {% endif %}
+
+                    {% if user == order.customer and order.can_be_completed %}
+                    <a href="{% url 'orders:order_complete' order.order_number %}" class="btn btn-success w-100 mb-2">
+                        <i class="bi bi-check-circle"></i> قبول وإكمال
+                    </a>
+                    {% endif %}
+
+                    <!-- زر التقييم للطلبات المكتملة -->
+                    {% if user == order.customer and order.status == 'completed' %}
+                    {% if not order.review %}
+                    <a href="{% url 'reviews:review_create' order.order_number %}" class="btn btn-warning w-100 mb-2">
+                        <i class="bi bi-star"></i> قيّم الخدمة
+                    </a>
+                    {% else %}
+                    <div class="alert alert-success mb-2 text-center">
+                        <i class="bi bi-star-fill"></i> تم التقييم: ⭐ {{ order.review.get_average_rating|floatformat:1
+                        }}<br>
+                        <a href="{% url 'reviews:review_update' order.review.pk %}" class="small">تعديل التقييم</a>
+                    </div>
+                    {% endif %}
+                    {% endif %}
+
+                    {% if order.can_be_cancelled %}
+                    <button class="btn btn-outline-danger w-100" data-bs-toggle="modal" data-bs-target="#cancelModal">
+                        <i class="bi bi-x-circle"></i> إلغاء الطلب
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- معلومات الأطراف -->
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h6 class="fw-bold mb-3">معلومات الأطراف</h6>
+
+                    <div class="mb-3">
+                        <strong>العميل:</strong>
+                        <p class="mb-0">{{ order.customer.username }}</p>
+                    </div>
+
+                    <div>
+                        <strong>مقدم الخدمة:</strong>
+                        <p class="mb-0">{{ order.provider.username }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal للتسليم -->
+<div class="modal fade" id="deliveryModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">تسليم العمل</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'orders:order_deliver' order.order_number %}"
+                enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">{{ delivery_form.file.label }}</label>
+                        {{ delivery_form.file }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">{{ delivery_form.description.label }}</label>
+                        {{ delivery_form.description }}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">تسليم</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal للإلغاء -->
+<div class="modal fade" id="cancelModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">إلغاء الطلب</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'orders:order_cancel' order.order_number %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">{{ cancellation_form.reason.label }}</label>
+                        {{ cancellation_form.reason }}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-danger">تأكيد الإلغاء</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

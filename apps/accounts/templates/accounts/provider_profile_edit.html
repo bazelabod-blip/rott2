@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags static %}
+
+{% block title %}معالج توثيق مقدم الخدمة - منصة سوق الخدمات{% endblock %}
+
+{% block content %}
+<div class="container py-5 provider-edit-page provider-wizard-page">
+  <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
+    <div>
+      <h2 class="fw-bold mb-1"><i class="bi bi-ui-checks-grid ms-2"></i>معالج توثيق مقدم الخدمة</h2>
+      <p class="text-muted mb-0">احفظ المسودة في أي وقت. لا يتم إرسال الحساب للإدارة إلا من خطوة المراجعة النهائية.</p>
+    </div>
+    <span class="badge fs-6 {% if profile.verification_status == 'verified' %}bg-success{% elif profile.verification_status == 'suspended' %}bg-danger{% elif profile.verification_status == 'pending_review' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">{{ profile.get_verification_status_display }}</span>
+  </div>
+
+  {% if user_form.errors or provider_form.errors or document_form.errors %}
+  <div class="alert alert-danger"><strong>لم يتم حفظ بعض البيانات.</strong> راجع أخطاء الحقول أدناه. {{ user_form.non_field_errors }}{{ provider_form.non_field_errors }}{{ document_form.non_field_errors }}</div>
+  {% endif %}
+
+  <div class="wizard-shell card border-0 shadow-sm">
+    <div class="wizard-steps" role="tablist" aria-label="خطوات التوثيق">
+      <button class="wizard-step active" type="button" data-wizard-target="step-1">1 <span>المعلومات الأساسية</span></button>
+      <button class="wizard-step" type="button" data-wizard-target="step-2">2 <span>النشاط والمهنة</span></button>
+      <button class="wizard-step" type="button" data-wizard-target="step-3">3 <span>الخبرة والمؤهلات</span></button>
+      <button class="wizard-step" type="button" data-wizard-target="step-4">4 <span>الموقع</span></button>
+      <button class="wizard-step" type="button" data-wizard-target="step-5">5 <span>العمولة والمحافظ</span></button>
+      <button class="wizard-step" type="button" data-wizard-target="step-6">6 <span>المستندات</span></button>
+      <button class="wizard-step" type="button" data-wizard-target="step-7">7 <span>الخدمات</span></button>
+      <button class="wizard-step" type="button" data-wizard-target="step-8">8 <span>المراجعة</span></button>
+    </div>
+
+    <div class="wizard-content card-body">
+      <form id="provider-edit-form" method="post" enctype="multipart/form-data" class="loading-form" novalidate>
+        {% csrf_token %}<input type="hidden" name="wizard_action" value="save_profile">{{ provider_form.specialization }}{{ provider_form.qualifications }}{{ provider_form.city }}{{ provider_form.district }}
+        <section id="step-1" class="wizard-panel active">
+          <h4 class="fw-bold mb-3">1. المعلومات الأساسية</h4>
+          <div class="alert alert-info">البريد ورقم الهاتف مصدرهما الأساسي حساب المستخدم، ويتم مزامنتهما تلقائيًا مع ملف مقدم الخدمة للقراءات القديمة.</div>
+          <div class="row g-3">
+            <div class="col-md-6">{{ user_form.first_name|as_crispy_field }}</div><div class="col-md-6">{{ user_form.last_name|as_crispy_field }}</div>
+            <div class="col-md-6">{{ user_form.email|as_crispy_field }}</div><div class="col-md-6">{{ user_form.phone|as_crispy_field }}</div>
+            <div class="col-12">{% if profile.profile_image %}<div class="mb-2"><img src="{{ profile.profile_image.url }}" alt="Profile" class="rounded border" style="max-width:150px;max-height:150px;object-fit:cover;"></div>{% endif %}{{ provider_form.profile_image|as_crispy_field }}</div>
+          </div>
+        </section>
+        <section id="step-2" class="wizard-panel">
+          <h4 class="fw-bold mb-3">2. معلومات النشاط والمهنة</h4>
+          <div class="row g-3"><div class="col-md-6">{{ provider_form.display_name|as_crispy_field }}</div><div class="col-md-6">{{ provider_form.business_name|as_crispy_field }}</div><div class="col-md-6">{{ provider_form.specializations|as_crispy_field }}</div><div class="col-md-6">{{ provider_form.hourly_rate|as_crispy_field }}</div><div class="col-12">{{ provider_form.bio|as_crispy_field }}</div></div>
+        </section>
+        <section id="step-3" class="wizard-panel">
+          <h4 class="fw-bold mb-3">3. الخبرة والمؤهلات</h4>
+          <div class="row g-3"><div class="col-md-4">{{ provider_form.experience_years|as_crispy_field }}</div><div class="col-md-4">{{ provider_form.service_radius|as_crispy_field }}</div><div class="col-md-4">{{ provider_form.availability|as_crispy_field }}</div><div class="col-md-6">{{ provider_form.qualification_choices|as_crispy_field }}</div><div class="col-md-6">{{ provider_form.experience|as_crispy_field }}</div><div class="col-12">{{ provider_form.is_available|as_crispy_field }}</div></div>
+        </section>
+        <section id="step-4" class="wizard-panel">
+          <h4 class="fw-bold mb-3">4. الموقع والخريطة</h4>
+          <div class="row g-3"><div class="col-md-6">{{ provider_form.location_city|as_crispy_field }}</div><div class="col-md-6">{{ provider_form.location_district|as_crispy_field }}</div><div class="col-12">{{ provider_form.address|as_crispy_field }}</div></div>
+          {{ provider_form.latitude }}{{ provider_form.longitude }}
+          <div class="row g-3 mt-1"><div class="col-md-6"><label class="form-label fw-bold">Latitude</label><input id="latitude-display" type="text" class="form-control" value="{{ profile.latitude|default_if_none:'' }}" readonly></div><div class="col-md-6"><label class="form-label fw-bold">Longitude</label><input id="longitude-display" type="text" class="form-control" value="{{ profile.longitude|default_if_none:'' }}" readonly></div></div>
+          <div id="provider-location-map" class="provider-map mt-3" data-api-key="{{ maps_api_key }}" data-lat="{{ profile.latitude|default_if_none:'' }}" data-lng="{{ profile.longitude|default_if_none:'' }}"></div>
+          <small class="text-muted d-block mt-2">تستخدم الخريطة طبقة محلية مبسطة عند عدم توفر الإنترنت، وتدعم النقر والسحب لحفظ الإحداثيات.</small>
+        </section>
+        <section id="step-5" class="wizard-panel">
+          <h4 class="fw-bold mb-3">5. سياسة العمولة والمحافظ</h4>
+          <div class="alert alert-info">{% if terms %}<strong>عمولة المنصة الحالية: {{ terms.commission_rate }}%</strong><br>تأتي هذه النسبة من سياسة العمولة النشطة في قاعدة البيانات.{% else %}<strong>لا توجد سياسة عمولة فعالة.</strong> يجب على الإدارة إعدادها قبل إرسال طلب التوثيق.{% endif %}</div>
+          {% if accepted_terms %}<p class="text-success"><i class="bi bi-check-circle"></i> وافقت على هذه السياسة بتاريخ {{ accepted_terms.accepted_at|date:'Y-m-d H:i' }}.</p>{% elif terms %}<button form="commission-accept-form" class="btn btn-success mb-3"><i class="bi bi-check2-square ms-2"></i>أوافق على سياسة العمولة</button>{% endif %}
+          <h6 class="fw-bold">محافظ استقبال المدفوعات</h6>
+          {% for wallet, provider_wallet in wallet_rows %}<div class="border rounded p-3 mb-2" style="border-right:6px solid {{ wallet.color }} !important"><div class="form-check"><input class="form-check-input" type="checkbox" name="wallets" value="{{ wallet.pk }}" id="wallet_{{ wallet.pk }}" {% if provider_wallet and provider_wallet.is_active %}checked{% endif %}><label class="form-check-label fw-bold" for="wallet_{{ wallet.pk }}"><span style="color:{{ wallet.color }}">●</span> {{ wallet.name }}</label></div><label class="form-label mt-2" for="wallet_account_{{ wallet.pk }}">رقم الحساب</label><input class="form-control" id="wallet_account_{{ wallet.pk }}" name="wallet_account_{{ wallet.pk }}" value="{% if provider_wallet %}{{ provider_wallet.account_number }}{% endif %}" placeholder="777XXXXXX"></div>{% empty %}<p class="text-muted">لا توجد محافظ نشطة حاليًا.</p>{% endfor %}
+        </section>
+        <div class="wizard-actions"><button type="button" class="btn btn-outline-secondary" data-wizard-prev>السابق</button><button type="button" class="btn btn-outline-primary" data-wizard-next>التالي</button><button type="submit" class="btn btn-primary"><i class="bi bi-save ms-2"></i>حفظ المسودة</button></div>
+      </form>
+
+      <form id="commission-accept-form" method="post" action="{% url 'accounts:accept_commission_policy' %}" class="d-none">{% csrf_token %}</form>
+
+      <section id="step-6" class="wizard-panel">
+        <h4 class="fw-bold mb-3">6. مستندات التوثيق</h4>
+        <form method="post" enctype="multipart/form-data" class="card card-body bg-light border-0 mb-3">{% csrf_token %}<input type="hidden" name="wizard_action" value="upload_document"><div class="row g-3"><div class="col-md-5">{{ document_form.document_type|as_crispy_field }}</div><div class="col-md-5">{{ document_form.file|as_crispy_field }}</div><div class="col-md-2 d-flex align-items-end"><button class="btn btn-primary w-100"><i class="bi bi-upload ms-1"></i>رفع</button></div></div></form>
+        <div class="table-responsive"><table class="table align-middle"><thead><tr><th>النوع</th><th>الملف</th><th>الحالة</th><th>تاريخ الرفع</th><th>إجراء</th></tr></thead><tbody>{% for doc in documents %}<tr><td>{{ doc.document_type }}</td><td><a href="{% url 'accounts:provider_document_download' doc.pk %}">{{ doc.file.name }}</a></td><td>{{ doc.get_status_display }}</td><td>{{ doc.created_at|date:'Y-m-d H:i' }}</td><td>{% if doc.status != 'approved' %}<form method="post" class="d-inline">{% csrf_token %}<input type="hidden" name="wizard_action" value="delete_document"><input type="hidden" name="document_id" value="{{ doc.pk }}"><button class="btn btn-sm btn-outline-danger">حذف/استبدال</button></form>{% else %}<span class="text-muted">معتمد</span>{% endif %}</td></tr>{% empty %}<tr><td colspan="5" class="text-center text-muted py-4">لا توجد مستندات مرفوعة.</td></tr>{% endfor %}</tbody></table></div>
+      </section>
+
+      <form id="verification-submit-form" method="post" action="{% url 'accounts:provider_submit_review' %}">{% csrf_token %}
+      <section id="step-7" class="wizard-panel"><h4 class="fw-bold mb-3">7. الخدمات المطلوبة للتوثيق</h4><p class="text-muted">الخدمات تأتي من القائمة المركزية التي تديرها الإدارة.</p>{{ verification_form.requested_services|as_crispy_field }}</section>
+
+      <section id="step-8" class="wizard-panel">
+        <h4 class="fw-bold mb-3">8. مراجعة البيانات</h4>
+        <div class="review-grid"><div><strong>الاسم</strong><span>{{ user.get_full_name|default:user.username }}</span></div><div><strong>التواصل</strong><span>{{ user.email }} — {{ user.phone|default:'-' }}</span></div><div><strong>النشاط</strong><span>{{ profile.display_name|default:'-' }} / {{ profile.business_name|default:'-' }}</span></div><div><strong>التخصصات</strong><span>{% for item in profile.specializations.all %}{{ item.name }}{% if not forloop.last %}, {% endif %}{% empty %}لا توجد بيانات{% endfor %}</span></div><div><strong>المؤهلات</strong><span>{% for item in profile.qualification_choices.all %}{{ item.name }}{% if not forloop.last %}, {% endif %}{% empty %}لا توجد بيانات{% endfor %}</span></div><div><strong>الموقع</strong><span>{{ profile.city|default:'-' }} {{ profile.district|default:'' }} — {{ profile.latitude|default:'-' }}, {{ profile.longitude|default:'-' }}</span></div><div><strong>المستندات</strong><span>{{ documents|length }} مستند</span></div><div><strong>حالة العمولة</strong><span>{% if accepted_terms %}تمت الموافقة{% else %}لم تتم الموافقة{% endif %}</span></div></div>
+        <div class="mt-4"><button class="btn btn-success btn-lg" {% if not can_submit_for_review %}disabled{% endif %}><i class="bi bi-send-check ms-2"></i>إرسال الحساب للمراجعة</button>{% if not can_submit_for_review %}<p class="text-danger small mt-2">أكمل المتطلبات الناقصة قبل الإرسال.</p>{% endif %}</div>
+      </section>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}<link rel="stylesheet" href="{% static 'vendor/leaflet/leaflet.css' %}"><style>.provider-map{height:420px;min-height:420px;width:100%;border-radius:16px;border:1px solid #dbe3ff;overflow:hidden}.wizard-shell{overflow:hidden}.wizard-steps{display:grid;grid-template-columns:repeat(8,1fr);gap:6px;padding:14px;background:linear-gradient(135deg,#eef2ff,#f8fafc)}.wizard-step{border:0;border-radius:14px;padding:10px;background:#fff;color:#475569;font-weight:700;box-shadow:0 6px 18px rgba(15,23,42,.06)}.wizard-step.active{background:#4f46e5;color:#fff}.wizard-step span{display:block;font-size:.72rem}.wizard-panel{display:none}.wizard-panel.active{display:block;animation:fadeIn .18s ease}.wizard-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:24px}.review-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}.review-grid div{padding:14px;border:1px solid #e2e8f0;border-radius:14px;background:#f8fafc}.review-grid strong,.review-grid span{display:block}@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}@media(max-width:992px){.wizard-steps{grid-template-columns:repeat(2,1fr)}}</style>{% endblock %}
+
+{% block extra_js %}<script src="{% static 'vendor/leaflet/leaflet.js' %}"></script><script>
+(function(){
+ const panels=[...document.querySelectorAll('.wizard-panel')], steps=[...document.querySelectorAll('.wizard-step')]; let current=0;
+ function show(i){current=Math.max(0,Math.min(i,steps.length-1)); panels.forEach(p=>p.classList.remove('active')); steps.forEach(s=>s.classList.remove('active')); document.getElementById(steps[current].dataset.wizardTarget)?.classList.add('active'); steps[current].classList.add('active'); window.scrollTo({top:document.querySelector('.wizard-shell').offsetTop-90,behavior:'smooth'});}
+ steps.forEach((s,i)=>s.addEventListener('click',()=>show(i))); document.querySelectorAll('[data-wizard-next]').forEach(b=>b.addEventListener('click',()=>show(current+1))); document.querySelectorAll('[data-wizard-prev]').forEach(b=>b.addEventListener('click',()=>show(current-1)));
+ const mapEl=document.getElementById('provider-location-map'), latInput=document.getElementById('id_provider-latitude'), lngInput=document.getElementById('id_provider-longitude'), latDisplay=document.getElementById('latitude-display'), lngDisplay=document.getElementById('longitude-display'); if(mapEl&&latInput&&lngInput){const savedLat=parseFloat(mapEl.dataset.lat||latInput.value), savedLng=parseFloat(mapEl.dataset.lng||lngInput.value), has=Number.isFinite(savedLat)&&Number.isFinite(savedLng), startLat=has?savedLat:15.3694, startLng=has?savedLng:44.1910; function update(ll){latInput.value=Number(ll.lat).toFixed(6);lngInput.value=Number(ll.lng).toFixed(6);latDisplay.value=latInput.value;lngDisplay.value=lngInput.value;} if(window.ServiceMarketplaceOfflineMap){window.ServiceMarketplaceOfflineMap(mapEl,{initial:{lat:startLat,lng:startLng},onChange:update,readonly:false});}}
+ document.querySelectorAll('select[name$="location_city"]').forEach(city=>{const district=document.getElementById(city.id.replace(/location_city$/,'location_district')); if(!district)return; city.addEventListener('change',async()=>{district.innerHTML='<option value="">اختر المديرية</option>'; if(!city.value)return; const data=await fetch('{% url "accounts:districts_for_city" %}?city='+encodeURIComponent(city.value)).then(r=>r.json()); data.districts.forEach(item=>district.add(new Option(item.name,item.id)));});});
+})();
+</script>{% endblock %}

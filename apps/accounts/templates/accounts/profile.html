@@ -1,0 +1,282 @@
+{% extends 'base.html' %}
+
+{% block title %}الملف الشخصي - منصة سوق الخدمات{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row g-4">
+        <!-- الشريط الجانبي -->
+        <div class="col-lg-3">
+            <div class="card border-0 shadow-lg">
+                <div class="card-body text-center p-4">
+                    <!-- صورة المستخدم -->
+                    <div class="mb-3 position-relative">
+                        {% if user.is_provider and user.provider_profile.profile_image %}
+                        <div class="profile-image-wrapper">
+                            <img src="{{ user.provider_profile.profile_image.url }}" alt="{{ user.username }}"
+                                class="profile-image">
+                        </div>
+                        {% else %}
+                        <div class="profile-avatar">
+                            <i class="bi bi-person-fill"></i>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- اسم المستخدم -->
+                    <h5 class="fw-bold mb-2">{{ user.username }}</h5>
+                    <span class="badge bg-gradient-primary mb-3">
+                        {{ user.get_role_display }}
+                    </span>
+
+                    <!-- معلومات سريعة -->
+                    <div class="text-start small mt-4">
+                        <div class="info-item mb-3">
+                            <i class="bi bi-envelope text-primary"></i>
+                            <span class="ms-2">{{ user.email }}</span>
+                        </div>
+                        {% if user.phone %}
+                        <div class="info-item mb-3">
+                            <i class="bi bi-phone text-success"></i>
+                            <span class="ms-2">{{ user.phone }}</span>
+                        </div>
+                        {% endif %}
+                        {% if user.city %}
+                        <div class="info-item mb-3">
+                            <i class="bi bi-geo-alt text-danger"></i>
+                            <span class="ms-2">{{ user.city }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- أزرار سريعة -->
+                    {% if user.is_provider %}
+                    <div class="d-grid gap-2 mt-4">
+                        <a href="{% url 'accounts:provider_profile_edit' %}" class="btn btn-primary">
+                            <i class="bi bi-pencil-square ms-1"></i>
+                            تعديل الملف
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- المحتوى الرئيسي -->
+        <div class="col-lg-9">
+            <!-- معلومات الحساب -->
+            <div class="card border-0 shadow-lg mb-4">
+                <div class="card-header bg-gradient-primary text-white py-3">
+                    <h5 class="mb-0 fw-bold">
+                        <i class="bi bi-person-lines-fill ms-2"></i>
+                        معلومات الحساب
+                    </h5>
+                </div>
+                <div class="card-body p-4">
+                    <form method="post">
+                        {% csrf_token %}
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">الاسم الأول</label>
+                                {{ form.first_name }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">اسم العائلة</label>
+                                {{ form.last_name }}
+                            </div>
+                        </div>
+
+                        <div class="mb-3 mt-3">
+                            <label class="form-label fw-bold">البريد الإلكتروني</label>
+                            {{ form.email }}
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">رقم الجوال</label>
+                                {{ form.phone }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">المدينة</label>
+                                {{ form.city }}
+                            </div>
+                        </div>
+
+                        <div class="mt-4">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-check-circle ms-2"></i>
+                                حفظ التغييرات
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- معلومات مقدم الخدمة -->
+            {% if user.is_provider and provider_profile %}
+            <div class="card border-0 shadow-lg mb-4">
+                <div class="card-header bg-gradient-primary text-white py-3">
+                    <h5 class="mb-0 fw-bold">
+                        <i class="bi bi-briefcase-fill ms-2"></i>
+                        معلومات مقدم الخدمة
+                    </h5>
+                </div>
+                <div class="card-body p-4">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <div class="info-card">
+                                <p class="mb-1 text-muted small">التخصص</p>
+                                <p class="fw-bold fs-5">{{ provider_profile.specialization|default:"غير محدد" }}</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="info-card">
+                                <p class="mb-1 text-muted small">سنوات الخبرة</p>
+                                <p class="fw-bold fs-5">{{ provider_profile.experience_years }} سنوات</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="info-card">
+                                <p class="mb-1 text-muted small">متوسط التقييم</p>
+                                <p class="fw-bold fs-5">
+                                    <i class="bi bi-star-fill text-warning"></i>
+                                    {{ provider_profile.average_rating }}/5.0
+                                </p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="info-card">
+                                <p class="mb-1 text-muted small">الطلبات المكتملة</p>
+                                <p class="fw-bold fs-5">{{ provider_profile.completed_orders }} طلب</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <a href="{% url 'accounts:provider_profile_edit' %}" class="btn btn-outline-primary">
+                            <i class="bi bi-pencil-square ms-2"></i>
+                            تعديل الملف الكامل
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- إحصائيات سريعة -->
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-lg text-center h-100 hover-lift">
+                        <div class="card-body p-4">
+                            <div class="stat-icon mb-3">
+                                <i class="bi bi-calendar-check"></i>
+                            </div>
+                            <h6 class="fw-bold mb-1">عضو منذ</h6>
+                            <p class="text-muted small mb-0">{{ user.created_at|date:"Y/m/d" }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                {% if user.is_provider %}
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-lg text-center h-100 hover-lift">
+                        <div class="card-body p-4">
+                            <div class="stat-icon mb-3" style="background: var(--gradient-success);">
+                                <i class="bi bi-clipboard-check"></i>
+                            </div>
+                            <h6 class="fw-bold mb-1">الطلبات المكتملة</h6>
+                            <p class="text-muted small mb-0">{{ provider_profile.completed_orders }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-lg text-center h-100 hover-lift">
+                        <div class="card-body p-4">
+                            <div class="stat-icon mb-3" style="background: var(--gradient-blue);">
+                                <i class="bi bi-graph-up"></i>
+                            </div>
+                            <h6 class="fw-bold mb-1">نسبة الإتمام</h6>
+                            <p class="text-muted small mb-0">{{ provider_profile.get_completion_rate }}%</p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .profile-image-wrapper {
+        width: 120px;
+        height: 120px;
+        margin: 0 auto;
+        border-radius: 50%;
+        padding: 4px;
+        background: var(--gradient-purple);
+        box-shadow: var(--shadow-lg);
+    }
+
+    .profile-image {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 3px solid white;
+    }
+
+    .profile-avatar {
+        width: 120px;
+        height: 120px;
+        margin: 0 auto;
+        border-radius: 50%;
+        background: var(--gradient-purple);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 3rem;
+        box-shadow: var(--shadow-lg);
+    }
+
+    .info-item {
+        display: flex;
+        align-items: center;
+        padding: 0.5rem;
+        border-radius: var(--radius-md);
+        transition: all var(--transition-base);
+    }
+
+    .info-item:hover {
+        background: var(--gray-50);
+    }
+
+    .info-card {
+        padding: 1rem;
+        border-radius: var(--radius-lg);
+        background: var(--gray-50);
+        transition: all var(--transition-base);
+    }
+
+    .info-card:hover {
+        background: white;
+        box-shadow: var(--shadow-md);
+        transform: translateY(-2px);
+    }
+
+    .stat-icon {
+        width: 60px;
+        height: 60px;
+        margin: 0 auto;
+        border-radius: var(--radius-xl);
+        background: var(--gradient-purple);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.5rem;
+        box-shadow: var(--shadow-md);
+    }
+</style>
+{% endblock %}

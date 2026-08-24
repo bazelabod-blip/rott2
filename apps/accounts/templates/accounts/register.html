@@ -1,0 +1,152 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}تسجيل حساب جديد - منصة سوق الخدمات{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <!-- بطاقة التسجيل -->
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-5">
+                    <!-- العنوان -->
+                    <div class="text-center mb-4">
+                        <i class="bi bi-person-plus-fill text-primary" style="font-size: 3rem;"></i>
+                        <h2 class="fw-bold mt-3">إنشاء حساب جديد</h2>
+                        <p class="text-muted">انضم إلى منصة سوق الخدمات الآن</p>
+                    </div>
+
+                    <!-- نموذج التسجيل -->
+                    <form method="post" class="loading-form">
+                        {% csrf_token %}
+
+                        <!-- اسم المستخدم -->
+                        <div class="mb-3">
+                            <label for="{{ form.username.id_for_label }}" class="form-label fw-bold">
+                                <i class="bi bi-person ms-2"></i>
+                                {{ form.username.label }}
+                            </label>
+                            {{ form.username }}
+                            {% if form.username.errors %}
+                            <div class="text-danger small mt-1">{{ form.username.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- البريد الإلكتروني -->
+                        <div class="mb-3">
+                            <label for="{{ form.email.id_for_label }}" class="form-label fw-bold">
+                                <i class="bi bi-envelope ms-2"></i>
+                                {{ form.email.label }}
+                            </label>
+                            {{ form.email }}
+                            {% if form.email.errors %}
+                            <div class="text-danger small mt-1">{{ form.email.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- رقم الجوال -->
+                        <div class="mb-3">
+                            <label for="{{ form.phone.id_for_label }}" class="form-label">
+                                <i class="bi bi-phone ms-2"></i>
+                                {{ form.phone.label }}
+                                <span class="text-muted small">(اختياري)</span>
+                            </label>
+                            {{ form.phone }}
+                            {% if form.phone.errors %}
+                            <div class="text-danger small mt-1">{{ form.phone.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- الموقع -->
+                        <div class="row g-3 mb-3">
+                          <div class="col-md-6">
+                            <label for="{{ form.location_city.id_for_label }}" class="form-label">
+                                <i class="bi bi-geo-alt ms-2"></i>
+                                {{ form.location_city.label }}
+                                <span class="text-muted small">(اختياري)</span>
+                            </label>
+                            {{ form.location_city }}{% if form.location_city.errors %}<div class="text-danger small mt-1">{{ form.location_city.errors.0 }}</div>{% endif %}
+                          </div>
+                          <div class="col-md-6"><label for="{{ form.location_district.id_for_label }}" class="form-label"><i class="bi bi-pin-map ms-2"></i>{{ form.location_district.label }}</label>{{ form.location_district }}{% if form.location_district.errors %}<div class="text-danger small mt-1">{{ form.location_district.errors.0 }}</div>{% endif %}</div>
+                        </div>
+
+                        <!-- نوع الحساب -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">
+                                <i class="bi bi-people ms-2"></i>
+                                {{ form.role.label }}
+                            </label>
+                            <div class="d-flex gap-4">
+                                {% for radio in form.role %}
+                                <div class="form-check">
+                                    {{ radio.tag }}
+                                    <label class="form-check-label" for="{{ radio.id_for_label }}">
+                                        {{ radio.choice_label }}
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% if form.role.errors %}
+                            <div class="text-danger small mt-1">{{ form.role.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- كلمة المرور -->
+                        <div class="mb-3">
+                            <label for="{{ form.password1.id_for_label }}" class="form-label fw-bold">
+                                <i class="bi bi-lock ms-2"></i>
+                                {{ form.password1.label }}
+                            </label>
+                            {{ form.password1 }}
+                            {% if form.password1.errors %}
+                            <div class="text-danger small mt-1">{{ form.password1.errors.0 }}</div>
+                            {% endif %}
+                            <div class="form-text small">
+                                <ul class="mb-0 pe-3">
+                                    <li>يجب أن تحتوي على 8 أحرف على الأقل</li>
+                                    <li>لا تكون شائعة جداً</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <!-- تأكيد كلمة المرور -->
+                        <div class="mb-4">
+                            <label for="{{ form.password2.id_for_label }}" class="form-label fw-bold">
+                                <i class="bi bi-lock-fill ms-2"></i>
+                                {{ form.password2.label }}
+                            </label>
+                            {{ form.password2 }}
+                            {% if form.password2.errors %}
+                            <div class="text-danger small mt-1">{{ form.password2.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- زر التسجيل -->
+                        <button type="submit" class="btn btn-primary btn-lg w-100 mb-3">
+                            <i class="bi bi-check-circle ms-2"></i>
+                            إنشاء الحساب
+                        </button>
+
+                        <!-- رابط تسجيل الدخول -->
+                        <div class="text-center">
+                            <p class="text-muted mb-0">
+                                لديك حساب بالفعل؟
+                                <a href="{% url 'accounts:login' %}" class="text-decoration-none">
+                                    سجل الدخول من هنا
+                                </a>
+                            </p>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const city = document.getElementById('id_location_city'), district = document.getElementById('id_location_district');
+  if (!city || !district) return;
+  city.addEventListener('change', async () => { district.innerHTML = '<option value="">اختر المديرية</option>'; if (!city.value) return; const data = await fetch('{% url "accounts:districts_for_city" %}?city=' + encodeURIComponent(city.value)).then(r => r.json()); data.districts.forEach(item => district.add(new Option(item.name, item.id))); });
+});</script>{% endblock %}

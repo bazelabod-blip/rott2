@@ -1,0 +1,160 @@
+{% extends 'base.html' %}
+
+{% block title %}تصفح الخدمات - منصة سوق الخدمات{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <!-- العنوان -->
+    <div class="page-heading">
+        <div><span class="page-heading__eyebrow">MARKETPLACE</span><h1 class="page-heading__title">تصفح الخدمات</h1><p class="page-heading__description">{{ total_count }} خدمة متاحة للاختيار</p></div>
+        <a href="{% url 'marketplace:provider_search' %}" class="btn btn-outline-primary"><i class="bi bi-people ms-1"></i> ابحث عن مقدم خدمة</a>
+    </div>
+
+    <!-- البحث والفلاتر -->
+    <div class="surface-card filter-panel mb-5">
+        <div class="card-body p-4">
+            <!-- تمت إضافة تفريغ الخانات عند إرسال النموذج مباشرة -->
+            <form method="get" id="filterForm" class="row g-3" onsubmit="setTimeout(() => this.reset(), 100);">
+                <!-- البحث بالكلمات المفتاحية -->
+                <div class="col-lg-4">
+                    <label class="form-label fw-bold small">
+                        <i class="bi bi-search ms-1"></i>
+                        البحث
+                    </label>
+                    {{ search_form.q }}
+                </div>
+
+                <!-- التصنيف -->
+                <div class="col-lg-3">
+                    <label class="form-label fw-bold small">
+                        <i class="bi bi-grid ms-1"></i>
+                        التصنيف
+                    </label>
+                    {{ search_form.category }}
+                </div>
+
+                <!-- السعر الأدنى -->
+                <div class="col-lg-2">
+                    <label class="form-label fw-bold small">
+                        <i class="bi bi-cash ms-1"></i>
+                        السعر من
+                    </label>
+                    {{ search_form.min_price }}
+                </div>
+
+                <!-- السعر الأقصى -->
+                <div class="col-lg-2">
+                    <label class="form-label fw-bold small">إلى</label>
+                    {{ search_form.max_price }}
+                </div>
+
+                <!-- زر البحث -->
+                <div class="col-lg-1 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100" title="بحث">
+                        <i class="bi bi-search"></i>
+                    </button>
+                </div>
+
+                <!-- الترتيب -->
+                <div class="col-lg-5">
+                    <label class="form-label fw-bold small">
+                        <i class="bi bi-sort-down ms-1"></i>
+                        الترتيب
+                    </label>
+                    {{ search_form.sort_by }}
+                </div>
+
+                <!-- زر تفريغ الخانات واستعادة جميع الخدمات -->
+                <div class="col-lg-3 d-flex align-items-end">
+                    <a href="{% url 'marketplace:service_list' %}" class="btn btn-outline-secondary w-100">
+                        <i class="bi bi-arrow-clockwise ms-1"></i>
+                        عرض كافة الخدمات
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- النتائج -->
+    {% if services %}
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 g-4 mb-5">
+        {% for service in services %}
+        {% include 'marketplace/partials/service_card.html' %}
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if is_paginated %}
+    <nav aria-label="تصفح الصفحات">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link"
+                    href="?page=1{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">
+                    <i class="bi bi-chevron-double-right"></i>
+                </a>
+            </li>
+            <li class="page-item">
+                <a class="page-link"
+                    href="?page={{ page_obj.previous_page_number }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">
+                    <i class="bi bi-chevron-right"></i>
+                </a>
+            </li>
+            {% endif %}
+
+            <li class="page-item active">
+                <span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+            </li>
+
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link"
+                    href="?page={{ page_obj.next_page_number }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">
+                    <i class="bi bi-chevron-left"></i>
+                </a>
+            </li>
+            <li class="page-item">
+                <a class="page-link"
+                    href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">
+                    <i class="bi bi-chevron-double-left"></i>
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon">
+            <i class="bi bi-inbox"></i>
+        </div>
+        <h4 class="fw-bold mb-2">لا توجد خدمات متاحة</h4>
+        <p class="text-muted mb-4">جرب تغيير معايير البحث أو الفلاتر</p>
+        <a href="{% url 'marketplace:service_list' %}" class="btn btn-primary">
+            <i class="bi bi-arrow-clockwise ms-1"></i>
+            إعادة تعيين البحث
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+    .empty-state {
+        text-align: center;
+        padding: 5rem 2rem;
+    }
+
+    .empty-icon {
+        width: 120px;
+        height: 120px;
+        margin: 0 auto 2rem;
+        border-radius: 50%;
+        background: var(--gray-100);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--gray-400);
+        font-size: 4rem;
+    }
+</style>
+{% endblock %}

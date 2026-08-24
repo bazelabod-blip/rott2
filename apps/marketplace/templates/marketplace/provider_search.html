@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block title %}البحث عن مقدمي الخدمات{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <h1 class="h3 mb-3"><i class="bi bi-geo-alt ms-2"></i>البحث عن مقدمي الخدمات</h1>
+  <form method="get" class="card card-body shadow-sm mb-4">
+    <div class="row g-2">
+      <div class="col-md-3"><input class="form-control" name="q" value="{{ request.GET.q }}" placeholder="بحث بالاسم أو الخدمة"></div>
+      <div class="col-md-2"><select class="form-select" name="category"><option value="">كل التصنيفات</option>{% for category in categories %}<option value="{{ category.id }}" {% if request.GET.category == category.id|stringformat:'s' %}selected{% endif %}>{{ category.name }}</option>{% endfor %}</select></div>
+      <div class="col-md-2"><select class="form-select" name="service"><option value="">كل الخدمات</option>{% for service in services %}<option value="{{ service.id }}" {% if request.GET.service == service.id|stringformat:'s' %}selected{% endif %}>{{ service.title }}</option>{% endfor %}</select></div>
+      <div class="col-md-2"><select class="form-select" name="city"><option value="">كل المدن</option>{% for city in cities %}<option value="{{ city.id }}" {% if request.GET.city == city.id|stringformat:'s' %}selected{% endif %}>{{ city.name }}</option>{% endfor %}</select></div>
+      <div class="col-md-2"><select class="form-select" name="district"><option value="">كل المديريات</option>{% for district in districts %}<option value="{{ district.id }}" {% if request.GET.district == district.id|stringformat:'s' %}selected{% endif %}>{{ district.name }}</option>{% endfor %}</select></div>
+      <div class="col-md-1"><button class="btn btn-primary w-100">بحث</button></div>
+      <div class="col-md-2"><input class="form-control" type="number" step="0.1" name="min_rating" value="{{ request.GET.min_rating }}" placeholder="أقل تقييم"></div>
+      <div class="col-md-2"><input class="form-control" type="number" name="min_experience" value="{{ request.GET.min_experience }}" placeholder="سنوات خبرة"></div>
+      <div class="col-md-2"><select class="form-select" name="availability"><option value="">أي توفر</option><option value="available" {% if request.GET.availability == 'available' %}selected{% endif %}>متاح فقط</option></select></div>
+      <div class="col-md-2"><input class="form-control" type="number" step="0.000001" name="lat" value="{{ request.GET.lat }}" placeholder="Latitude"></div>
+      <div class="col-md-2"><input class="form-control" type="number" step="0.000001" name="lng" value="{{ request.GET.lng }}" placeholder="Longitude"></div>
+      <div class="col-md-2"><input class="form-control" type="number" name="radius" value="{{ request.GET.radius }}" placeholder="نطاق كم"></div>
+    </div>
+  </form>
+  <div class="row g-3">
+    {% for provider in providers %}
+      <div class="col-md-4"><div class="card h-100 shadow-sm"><div class="card-body"><h5>{{ provider.provider_profile.display_name|default:provider.username }}</h5><p class="text-muted mb-1">{{ provider.provider_profile.specialization }}</p><p class="small"><i class="bi bi-geo-alt"></i> {{ provider.provider_profile.city }}{% if provider.provider_profile.district %} - {{ provider.provider_profile.district }}{% endif %}</p><span class="badge bg-info">مقدم خدمة موثّق</span><a href="{% url 'accounts:provider_detail' provider.pk %}" class="btn btn-outline-primary btn-sm d-block mt-3">عرض الملف</a></div></div></div>
+    {% empty %}<div class="col-12"><div class="alert alert-warning">لا توجد نتائج مطابقة.</div></div>{% endfor %}
+  </div>
+  {% if is_paginated %}<nav class="mt-4"><ul class="pagination justify-content-center">{% if page_obj.has_previous %}<li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&{{ request.GET.urlencode }}">السابق</a></li>{% endif %}<li class="page-item active"><span class="page-link">{{ page_obj.number }}</span></li>{% if page_obj.has_next %}<li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}&{{ request.GET.urlencode }}">التالي</a></li>{% endif %}</ul></nav>{% endif %}
+</div>
+{% endblock %}

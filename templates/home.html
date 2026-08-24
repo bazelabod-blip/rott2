@@ -1,0 +1,221 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}الرئيسية - منصة سوق الخدمات{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section hero-premium">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-8 mx-auto text-center">
+                <span class="eyebrow animate-fadeInUp"><i class="bi bi-patch-check-fill"></i> سوق خدمات موثوق</span>
+                <h1 class="display-4 fw-bold mb-4 animate-fadeInUp">
+                    اعثر على الخدمة المناسبة، <span class="hero-emphasis">بثقة وسهولة</span>
+                </h1>
+                <p class="lead mb-4 animate-fadeInUp" style="animation-delay: 0.2s;">
+                    اكتشف أفضل مقدمي الخدمات في مختلف المجالات. ابحث، اطلب، واحصل على ما تحتاجه بسهولة وأمان.
+                </p>
+
+                <!-- إحصائيات سريعة -->
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <div class="stats-card bg-white text-dark animate-fadeInUp" style="animation-delay: 0.3s;">
+                            <h3 class="fw-bold mb-0 text-gradient">{{ stats.services_count }}</h3>
+                            <small class="text-muted">خدمة متاحة</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="stats-card bg-white text-dark animate-fadeInUp" style="animation-delay: 0.4s;">
+                            <h3 class="fw-bold mb-0 text-gradient">{{ stats.providers_count }}</h3>
+                            <small class="text-muted">مقدم خدمة</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="stats-card bg-white text-dark animate-fadeInUp" style="animation-delay: 0.5s;">
+                            <h3 class="fw-bold mb-0 text-gradient">{{ stats.orders_count }}</h3>
+                            <small class="text-muted">طلب مكتمل</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- شريط البحث -->
+                <div class="search-box search-command animate-fadeInUp" style="animation-delay: 0.6s;">
+                    <form action="{% url 'marketplace:global_search' %}" method="get" class="row g-2">
+                        <div class="col-md-8"><label class="visually-hidden" for="hero-search">ابحث عن خدمة أو مقدم خدمة</label>
+                            <input type="text" name="q" class="form-control form-control-lg"
+                                id="hero-search" placeholder="ابحث عن خدمة أو مقدم خدمة..." style="text-align: right;">
+                        </div>
+                        <div class="col-md-4">
+                            <button type="submit" class="btn btn-primary btn-lg w-100">
+                                <i class="bi bi-search ms-2"></i>
+                                بحث
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <div class="hero-links animate-fadeInUp" style="animation-delay:.7s"><a href="{% url 'marketplace:provider_search' %}"><i class="bi bi-geo-alt"></i> استكشف مقدمي الخدمات حسب الموقع</a><span></span><a href="{% url 'marketplace:category_list' %}"><i class="bi bi-grid"></i> تصفح التصنيفات</a></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- أحدث الخدمات -->
+{% if latest_services %}
+<section class="py-5">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="fw-bold">
+                <i class="bi bi-clock-history ms-2 text-gradient"></i>
+                أحدث الخدمات
+            </h2>
+            <a href="{% url 'marketplace:service_list' %}" class="btn btn-outline-primary">
+                عرض الكل
+                <i class="bi bi-arrow-left me-2"></i>
+            </a>
+        </div>
+
+        <div class="row row-cols-1 row-cols-md-3 g-4">
+            {% for service in latest_services %}
+            {% include 'marketplace/partials/service_card.html' %}
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<!-- الخدمات الأعلى تقييماً -->
+{% if top_rated_services %}
+<section class="py-5" style="background: rgba(255, 255, 255, 0.5);">
+    <div class="container">
+        <h2 class="fw-bold mb-4 text-center">
+            <i class="bi bi-star-fill text-warning ms-2"></i>
+            الخدمات الأعلى تقييماً
+        </h2>
+
+        <div class="row row-cols-1 row-cols-md-3 g-4">
+            {% for service in top_rated_services %}
+            {% include 'marketplace/partials/service_card.html' %}
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<!-- التصنيفات -->
+{% if categories %}
+<section class="py-5">
+    <div class="container">
+        <h2 class="text-center mb-4 fw-bold">
+            <i class="bi bi-grid-3x3-gap-fill ms-2 text-gradient"></i>
+            تصنيفات الخدمات
+        </h2>
+
+        <div class="row g-4">
+            {% for category in categories %}
+            <div class="col-md-4">
+                <div class="card h-100 hover-lift">
+                    <div class="card-body text-center p-4">
+                        <div class="mb-3">
+                            <div class="feature-icon mx-auto" style="width: 70px; height: 70px;">
+                                <i class="{{ category.icon }} fs-2"></i>
+                            </div>
+                        </div>
+                        <h5 class="card-title fw-bold mb-2">{{ category.name }}</h5>
+                        <p class="card-text text-muted small mb-3">
+                            {{ category.description|truncatewords:10 }}
+                        </p>
+                        <a href="{% url 'marketplace:category_detail' category.pk %}"
+                            class="btn btn-outline-primary btn-sm">
+                            عرض الخدمات ({{ category.services.count }})
+                            <i class="bi bi-arrow-left me-2"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="text-center mt-4">
+            <a href="{% url 'marketplace:category_list' %}" class="btn btn-primary btn-lg">
+                عرض جميع التصنيفات
+                <i class="bi bi-arrow-left me-2"></i>
+            </a>
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<!-- المميزات -->
+<section class="py-5" style="background: rgba(255, 255, 255, 0.5);">
+    <div class="container">
+        <h2 class="text-center mb-5 fw-bold">لماذا تختار منصتنا؟</h2>
+
+        <div class="row g-4 text-center">
+            <div class="col-md-3">
+                <div class="feature-box">
+                    <div class="feature-icon">
+                        <i class="bi bi-shield-check"></i>
+                    </div>
+                    <h5 class="fw-bold mb-2">موثوق وآمن</h5>
+                    <p class="text-muted small">
+                        نضمن لك تجربة آمنة ومحمية
+                    </p>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="feature-box">
+                    <div class="feature-icon" style="background: var(--gradient-success);">
+                        <i class="bi bi-people"></i>
+                    </div>
+                    <h5 class="fw-bold mb-2">مقدمو خدمات محترفون</h5>
+                    <p class="text-muted small">
+                        تواصل مع أفضل المتخصصين
+                    </p>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="feature-box">
+                    <div class="feature-icon" style="background: var(--gradient-blue);">
+                        <i class="bi bi-chat-dots"></i>
+                    </div>
+                    <h5 class="fw-bold mb-2">تواصل مباشر</h5>
+                    <p class="text-muted small">
+                        محادثات فورية داخل المنصة
+                    </p>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="feature-box">
+                    <div class="feature-icon" style="background: var(--gradient-pink);">
+                        <i class="bi bi-star-fill"></i>
+                    </div>
+                    <h5 class="fw-bold mb-2">تقييمات حقيقية</h5>
+                    <p class="text-muted small">
+                        آراء العملاء السابقين
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA -->
+<section class="py-5">
+    <div class="container">
+        <div class="card text-center p-5" style="background: var(--gradient-purple); border: none;">
+            <div class="card-body">
+                <h2 class="fw-bold mb-3 text-white">هل أنت مقدم خدمة محترف؟</h2>
+                <p class="lead mb-4 text-white-50">انضم إلى منصتنا وابدأ في تقديم خدماتك لآلاف العملاء</p>
+                <a href="{% url 'accounts:register' %}" class="btn btn-light btn-lg px-5">
+                    <i class="bi bi-person-plus ms-2"></i>
+                    سجل كمقدم خدمة
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

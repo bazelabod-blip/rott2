@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+
+{% block title %}التصنيفات - منصة سوق الخدمات{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <!-- العنوان -->
+    <div class="text-center mb-5">
+        <h2 class="fw-bold display-5 mb-3">
+            <i class="bi bi-grid-3x3-gap-fill ms-2 text-gradient"></i>
+            تصفح التصنيفات
+        </h2>
+        <p class="text-muted lead">اكتشف جميع تصنيفات الخدمات المتاحة على منصتنا</p>
+    </div>
+
+    <!-- شبكة التصنيفات -->
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 g-4">
+        {% for category in categories %}
+        <div class="col">
+            <a href="{{ category.get_absolute_url }}" class="text-decoration-none">
+                <div class="card h-100 text-center hover-lift">
+                    <div class="card-body p-4">
+                        <!-- الأيقونة -->
+                        <div class="category-icon-wrapper mb-3">
+                            <div class="category-icon-bg">
+                                <i class="{{ category.icon }} text-white" style="font-size: 2.5rem;"></i>
+                            </div>
+                        </div>
+
+                        <!-- اسم التصنيف -->
+                        <h5 class="fw-bold mb-2">{{ category.name }}</h5>
+
+                        <!-- عدد الخدمات -->
+                        <p class="text-muted small mb-3">
+                            <i class="bi bi-box-seam ms-1"></i>
+                            {{ category.get_services_count }} خدمة متاحة
+                        </p>
+
+                        <!-- التصنيفات الفرعية -->
+                        {% if category.subcategories.all %}
+                        <div class="mt-3">
+                            {% for subcategory in category.subcategories.all|slice:":3" %}
+                            <span class="badge bg-light text-dark small mb-1">
+                                {{ subcategory.name }}
+                            </span>
+                            {% endfor %}
+                            {% if category.subcategories.count > 3 %}
+                            <span class="badge bg-light text-dark small mb-1">
+                                +{{ category.subcategories.count|add:"-3" }}
+                            </span>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+
+                        <!-- زر الاستكشاف -->
+                        <div class="mt-3">
+                            <span class="btn btn-outline-primary btn-sm">
+                                استكشف الخدمات
+                                <i class="bi bi-arrow-left me-1"></i>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="alert alert-info text-center">
+                <i class="bi bi-info-circle ms-2"></i>
+                لا توجد تصنيفات متاحة حالياً
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<style>
+    .category-icon-wrapper {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .category-icon-bg {
+        width: 90px;
+        height: 90px;
+        background: var(--gradient-purple);
+        border-radius: var(--radius-xl);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: var(--shadow-lg);
+        transition: all var(--transition-base);
+    }
+
+    .card:hover .category-icon-bg {
+        transform: scale(1.1) rotate(5deg);
+        box-shadow: var(--shadow-glow);
+    }
+
+    /* تنويع ألوان الأيقونات */
+    .col:nth-child(4n+1) .category-icon-bg {
+        background: var(--gradient-purple);
+    }
+
+    .col:nth-child(4n+2) .category-icon-bg {
+        background: var(--gradient-pink);
+    }
+
+    .col:nth-child(4n+3) .category-icon-bg {
+        background: var(--gradient-blue);
+    }
+
+    .col:nth-child(4n+4) .category-icon-bg {
+        background: var(--gradient-success);
+    }
+</style>
+{% endblock %}

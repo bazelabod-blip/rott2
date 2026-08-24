@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+
+{% block title %}تقييم الطلب #{{ order.order_number }}{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h3 class="fw-bold mb-4">قيّم تجربتك</h3>
+
+                    <!-- معلومات الطلب -->
+                    <div class="alert alert-info mb-4">
+                        <strong>الطلب:</strong> {{ order.title }}<br>
+                        <strong>مقدم الخدمة:</strong> {{ order.provider.get_full_name|default:order.provider.username }}
+                    </div>
+
+                    <form method="post">
+                        {% csrf_token %}
+
+                        <!-- تقييم الخدمة -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">
+                                <i class="bi bi-star-fill text-warning ms-2"></i>
+                                {{ form.service_rating.label }}
+                            </label>
+                            {{ form.service_rating }}
+                            <div class="form-text">{{ form.service_rating.help_text }}</div>
+                            {% if form.service_rating.errors %}
+                            <div class="text-danger small">{{ form.service_rating.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- تقييم مقدم الخدمة -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">
+                                <i class="bi bi-person-circle text-primary ms-2"></i>
+                                {{ form.provider_rating.label }}
+                            </label>
+                            {{ form.provider_rating }}
+                            <div class="form-text">{{ form.provider_rating.help_text }}</div>
+                            {% if form.provider_rating.errors %}
+                            <div class="text-danger small">{{ form.provider_rating.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- التعليق -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">{{ form.comment.label }}</label>
+                            {{ form.comment }}
+                            <div class="form-text">{{ form.comment.help_text }}</div>
+                            {% if form.comment.errors %}
+                            <div class="text-danger small">{{ form.comment.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- عام -->
+                        <div class="mb-4 form-check">
+                            {{ form.is_public }}
+                            <label class="form-check-label" for="{{ form.is_public.id_for_label }}">
+                                {{ form.is_public.label }}
+                            </label>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-send ms-2"></i>
+                                إرسال التقييم
+                            </button>
+                            <a href="{% url 'orders:order_detail' order.order_number %}"
+                                class="btn btn-outline-secondary">
+                                <i class="bi bi-x-circle ms-2"></i>
+                                إلغاء
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

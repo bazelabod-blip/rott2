@@ -1,0 +1,206 @@
+﻿{% extends 'base.html' %}
+
+{% block title %}المحادثات - منصة سوق الخدمات{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <!-- العنوان -->
+            <div class="text-center mb-5">
+                <h2 class="fw-bold display-6 mb-2">
+                    <i class="bi bi-chat-dots ms-2 text-gradient"></i>
+                    المحادثات
+                </h2>
+                <p class="text-muted">تواصل مع العملاء ومقدمي الخدمات</p>
+            </div>
+
+            {% if conversations %}
+            <div class="row g-4">
+                {% for conversation in conversations %}
+                <div class="col-md-6 col-lg-4">
+                    <a href="{% url 'chat:conversation_detail' conversation.pk %}" class="text-decoration-none">
+                        <div
+                            class="card border-0 shadow-lg h-100 hover-lift conversation-card {% if conversation.unread_count > 0 %}has-unread{% endif %}">
+                            <div class="card-body p-4">
+                                <!-- User Info -->
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="user-avatar me-3">
+                                        <i class="bi bi-person-fill"></i>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <h6 class="mb-1 fw-bold text-dark">
+                                            {{ conversation.other_user.get_full_name|default:conversation.other_user.username }}
+                                        </h6>
+                                        <small class="user-badge">
+                                            {% if conversation.other_user.is_provider %}
+                                            <i class="bi bi-briefcase"></i> مقدم خدمة
+                                            {% else %}
+                                            <i class="bi bi-person"></i> عميل
+                                            {% endif %}
+                                        </small>
+                                    </div>
+                                    {% if conversation.unread_count > 0 %}
+                                    <span class="unread-badge">
+                                        {{ conversation.unread_count }}
+                                    </span>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Service Info -->
+                                {% if conversation.service %}
+                                <div class="service-info mb-3">
+                                    <i class="bi bi-tag"></i>
+                                    <span>{{ conversation.service.title|truncatewords:5 }}</span>
+                                </div>
+                                {% endif %}
+
+                                <!-- Last Message -->
+                                {% if conversation.last_message %}
+                                <div class="last-message mb-2">
+                                    {% if conversation.last_message.sender == user %}
+                                    <i class="bi bi-reply text-primary"></i>
+                                    {% else %}
+                                    <i class="bi bi-arrow-down-left"></i>
+                                    {% endif %}
+                                    {{ conversation.last_message.content|truncatewords:10 }}
+                                </div>
+                                <div class="message-time">
+                                    <i class="bi bi-clock"></i>
+                                    {{ conversation.last_message.created_at|timesince }}
+                                </div>
+                                {% else %}
+                                <div class="no-messages">
+                                    <i class="bi bi-chat-left-dots"></i>
+                                    لا توجد رسائل بعد
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-icon">
+                    <i class="bi bi-chat-dots"></i>
+                </div>
+                <h4 class="fw-bold mb-2">لا توجد محادثات بعد</h4>
+                <p class="text-muted mb-4">ابدأ محادثة مع مقدم خدمة أو عميل</p>
+                <a href="{% url 'marketplace:service_list' %}" class="btn btn-primary">
+                    <i class="bi bi-search ms-1"></i>
+                    تصفح الخدمات
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+    .conversation-card {
+        transition: all var(--transition-base);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .conversation-card:hover {
+        transform: translateY(-8px);
+        box-shadow: var(--shadow-2xl) !important;
+    }
+
+    .conversation-card.has-unread {
+        border-right: 4px solid var(--primary-color) !important;
+    }
+
+    .user-avatar {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: var(--gradient-purple);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        box-shadow: var(--shadow-md);
+    }
+
+    .user-badge {
+        display: inline-block;
+        padding: 0.25rem 0.5rem;
+        background: var(--gray-100);
+        border-radius: var(--radius-md);
+        font-size: 0.75rem;
+        color: var(--gray-700);
+    }
+
+    .unread-badge {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: var(--gradient-pink);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+        font-weight: 700;
+        box-shadow: var(--shadow-md);
+    }
+
+    .service-info {
+        padding: 0.5rem;
+        background: var(--gray-50);
+        border-radius: var(--radius-md);
+        font-size: 0.875rem;
+        color: var(--gray-700);
+    }
+
+    .service-info i {
+        color: var(--primary-color);
+    }
+
+    .last-message {
+        font-size: 0.875rem;
+        color: var(--gray-600);
+        line-height: 1.5;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .message-time {
+        font-size: 0.75rem;
+        color: var(--gray-500);
+    }
+
+    .no-messages {
+        text-align: center;
+        padding: 2rem 0;
+        color: var(--gray-400);
+        font-size: 0.875rem;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 5rem 2rem;
+    }
+
+    .empty-icon {
+        width: 120px;
+        height: 120px;
+        margin: 0 auto 2rem;
+        border-radius: 50%;
+        background: var(--gray-100);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--gray-400);
+        font-size: 4rem;
+    }
+</style>
+{% endblock %}

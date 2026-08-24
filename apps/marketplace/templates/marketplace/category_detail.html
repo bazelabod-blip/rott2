@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ category.name }} - التصنيفات{% endblock %}
+
+{% block content %}
+<div class="bg-primary text-white py-4 mb-4">
+    <div class="container text-center">
+        <i class="{{ category.icon }}" style="font-size: 3rem;"></i>
+        <h2 class="fw-bold mt-2">{{ category.name }}</h2>
+        <p class="mb-0">{{ services_count }} خدمة متاحة</p>
+    </div>
+</div>
+
+<div class="container py-4">
+    {% if services %}
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 g-4">
+        {% for service in services %}
+        {% include 'marketplace/partials/service_card.html' %}
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-5">
+        <i class="bi bi-inbox text-muted" style="font-size: 4rem;"></i>
+        <h4 class="mt-3">لا توجد خدمات في هذا التصنيف</h4>
+        <p class="text-muted">كن أول من يضيف خدمة!</p>
+        {% if user.is_authenticated and user.is_provider %}
+        <a href="{% url 'marketplace:service_create' %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle ms-2"></i>
+            إضافة خدمة
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

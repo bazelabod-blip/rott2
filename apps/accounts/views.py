@@ -1,0 +1,453 @@
+"""
+Views لتطبيق accounts (تسجيل، دخول، ملف شخصي)
+Views for accounts app
+"""
+from pathlib import Path
+from django.conf import settings
+from django.core.exceptions import ValidationError
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.db import transaction
+from django.utils import timezone
+from django.db.models import Sum, Count, Avg, Q
+from django.views.generic import DetailView
+from django.contrib.auth import login as auth_login, logout as auth_logout
+from .forms import UserRegisterForm, UserLoginForm, UserProfileForm, ProviderProfileForm, ProviderVerificationRequestForm, ProviderDocumentForm
+from .models import User, ProviderProfile, ProviderDocument, ProviderDocumentType, ProviderVerificationRequest
+from . import services
+from .utils import get_provider_onboarding_status
+from apps.core.models import TermsAcceptance
+from apps.payments.models import Wallet, ProviderWallet
+from apps.payments.services import active_terms
+
+
+def register_view(request):
+    """
+    صفحة تسجيل مستخدم جديد
+    User registration page
+    """
+    if request.user.is_authenticated:
+        return redirect('home')
+    
+    if request.method == 'POST':
+        form = UserRegisterForm(request.POST)
+        if form.is_valid():
+            user = form.save(commit=False)
+            user.role = form.cleaned_data['role']
+            user.save()
+            
+            # منع تسجيل الدخول التلقائي لمقدمي الخدمات
+            if user.is_provider():
+                messages.success(request, 'تم إنشاء حسابك بنجاح! حسابك الآن قيد المراجعة من الإدارة لتتمكن من تقديم خدماتك. يرجى المحاولة لاحقاً.')
+                return redirect('accounts:login')
+                
+            # تسجيل دخول تلقائي للعملاء
+            auth_login(request, user)
+            messages.success(request, f'مرحباً {user.username}! تم إنشاء حسابك بنجاح.')
+            return redirect('home')
+    else:
+        form = UserRegisterForm()
+    
+    return render(request, 'accounts/register.html', {'form': form})
+
+
+def login_view(request):
+    """
+    صفحة تسجيل الدخول
+    Login page
+    """
+    if request.user.is_authenticated:
+        return redirect('home')
+    
+    if request.method == 'POST':
+        form = UserLoginForm(request, data=request.POST)
+        if form.is_valid():
+            user = form.get_user()
+            
+            # تحقق من حالة الاعتماد لمقدمي الخدمات
+            if user.is_provider():
+                profile = services.get_provider_profile(user)
+                if profile.status == 'pending':
+                    messages.warning(request, 'حسابك قيد المراجعة حالياً من قبل الإدارة. يرجى الانتظار حتى يتم اعتماده لتتمكن من الدخول.')
+                    return redirect('accounts:login')
+                elif profile.status == 'rejected':
+                    messages.error(request, 'نعتذر، لقد تم رفض طلبك للانضمام كمقدم خدمة.')
+                    return redirect('accounts:login')
+                    
+            auth_login(request, user)
+            messages.success(request, f'مرحباً بعودتك {user.username}!')
+            
+            # التوجيه للصفحة المطلوبة أو الرئيسية
+            next_page = request.GET.get('next', 'home')
+            return redirect(next_page)
+        else:
+            messages.error(request, 'اسم المستخدم أو كلمة المرور غير صحيحة.')
+    else:
+        form = UserLoginForm()
+    
+    return render(request, 'accounts/login.html', {'form': form})
+
+
+@login_required
+def logout_view(request):
+    """
+    تسجيل الخروج
+    Logout
+    """
+    username = request.user.username
+    auth_logout(request)
+    messages.info(request, f'تم تسجيل خروجك بنجاح. نراك قريباً!')
+    return redirect('home')
+
+
+@login_required
+def profile_view(request):
+    """
+    صفحة الملف الشخصي
+    User profile page
+    """
+    user = request.user
+    
+    if request.method == 'POST':
+        form = UserProfileForm(request.POST, instance=user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'تم تحديث معلوماتك بنجاح.')
+            return redirect('accounts:profile')
+    else:
+        form = UserProfileForm(instance=user)
+    
+    context = {
+        'user': user,
+        'form': form,
+    }
+    
+    # إذا كان مقدم خدمة، أضف معلومات إضافية
+    if user.is_provider():
+        context['provider_profile'] = services.get_provider_profile(user)
+    
+    return render(request, 'accounts/profile.html', context)
+
+
+@login_required
+def provider_profile_edit_view(request):
+    """
+    صفحة تعديل ملف مقدم الخدمة
+    Provider profile edit page
+    """
+    # التحقق من أن المستخدم مقدم خدمة
+    if not request.user.is_provider():
+        messages.error(request, 'هذه الصفحة متاحة لمقدمي الخدمات فقط.')
+        return redirect('accounts:profile')
+    
+    profile = services.get_provider_profile(request.user)
+    
+    document_form = ProviderDocumentForm()
+    if request.method == 'POST':
+        action = request.POST.get('wizard_action', 'save_profile')
+        if action == 'upload_document':
+            document_form = ProviderDocumentForm(request.POST, request.FILES)
+            if document_form.is_valid():
+                doc = document_form.save(commit=False)
+                doc.provider = profile
+                doc.save()
+                messages.success(request, 'تم حفظ المستند داخل مسودة التوثيق دون التأثير على بياناتك الأخرى.')
+                return redirect('accounts:provider_profile_edit')
+            messages.error(request, 'تعذر رفع المستند. تحقق من النوع والحجم.')
+        elif action == 'delete_document':
+            doc = get_object_or_404(ProviderDocument, pk=request.POST.get('document_id'), provider=profile)
+            if doc.status in {'pending', 'rejected', 'needs_additional_documents'}:
+                doc.file.delete(save=False)
+                doc.delete()
+                messages.success(request, 'تم حذف المستند من مسودة التوثيق.')
+                return redirect('accounts:provider_profile_edit')
+            messages.error(request, 'لا يمكن حذف مستند تمت مراجعته واعتماده.')
+        else:
+            user_form = UserProfileForm(request.POST, instance=request.user, prefix='user')
+            provider_form = ProviderProfileForm(request.POST, request.FILES, instance=profile, prefix='provider')
+            
+            if user_form.is_valid() and provider_form.is_valid():
+                try:
+                    with transaction.atomic():
+                        user = user_form.save()
+                        provider = provider_form.save(commit=False)
+                        provider.user = request.user
+                        # User is the canonical contact source shown in the wizard; mirror it for legacy provider/profile reads.
+                        provider.email = user.email
+                        provider.phone = user.phone
+                        if provider.location_city_id:
+                            provider.city = provider.location_city.name
+                        if provider.location_district_id:
+                            provider.district = provider.location_district.name
+                        provider.save()
+                        provider_form.save_m2m()
+                        _sync_provider_wallets(request, provider)
+                except ValidationError as exc:
+                    provider_form.add_error(None, exc)
+                    messages.error(request, 'تعذر حفظ المحافظ. تحقق من أرقام الحسابات والمحافظ المحددة.')
+                else:
+                    profile.refresh_from_db()
+                    messages.success(request, 'تم حفظ المسودة بنجاح. يمكنك متابعة خطوات التوثيق أو العودة لاحقًا.')
+                    return redirect('accounts:provider_profile_edit')
+            messages.error(request, 'تعذر حفظ المسودة. راجع أخطاء الحقول أدناه.')
+    else:
+        user_form = UserProfileForm(instance=request.user, prefix='user')
+        provider_form = ProviderProfileForm(instance=profile, prefix='provider')
+    
+    checklist, can_submit = get_provider_onboarding_status(profile)
+    terms = active_terms()
+    accepted_terms = TermsAcceptance.objects.filter(user=request.user, terms=terms).first() if terms else None
+    active_wallets = Wallet.objects.filter(is_active=True).order_by('display_order', 'name')
+    provider_wallets = {pw.wallet_id: pw for pw in ProviderWallet.objects.filter(provider=profile).select_related('wallet')}
+    wallet_rows = [(wallet, provider_wallets.get(wallet.pk)) for wallet in active_wallets]
+    context = {
+        'user_form': user_form,
+        'provider_form': provider_form,
+        'profile': profile,
+        'verification_checklist': checklist,
+        'can_submit_for_review': can_submit,
+        'terms': terms,
+        'accepted_terms': accepted_terms,
+        'active_wallets': active_wallets,
+        'provider_wallets': provider_wallets,
+        'wallet_rows': wallet_rows,
+        'maps_api_key': settings.MAPS_API_KEY,
+        'verification_form': ProviderVerificationRequestForm(provider=profile),
+        'document_form': document_form,
+        'documents': ProviderDocument.objects.filter(provider=profile).select_related('document_type').order_by('-created_at'),
+        'required_document_types': ProviderDocumentType.objects.filter(is_active=True, is_required=True),
+    }
+    
+    return render(request, 'accounts/provider_profile_edit.html', context)
+
+
+class ProviderDetailView(DetailView):
+    """
+    صفحة عرض ملف مقدم الخدمة للزوار
+    Public provider profile view
+    """
+    model = User
+    template_name = 'accounts/provider_detail.html'
+    context_object_name = 'provider'
+    
+    def get_queryset(self):
+        """فقط المستخدمين من نوع provider"""
+        return User.objects.filter(role='provider', is_active=True)
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        provider = self.get_object()
+        
+        profile = services.get_provider_profile(provider)
+        active_services = provider.services.filter(status='active').select_related('category').annotate(completed_orders_real=Count('orders', filter=Q(orders__status='completed'), distinct=True))
+        public_reviews = provider.reviews_received.filter(is_public=True).select_related('customer', 'service').order_by('-created_at')
+        rating_stats = public_reviews.aggregate(avg=Avg('provider_rating'), count=Count('id'))
+        completed_orders = provider.orders_as_provider.filter(status='completed').count()
+        context['provider_profile'] = profile
+        context['provider_services'] = active_services
+        context['provider_reviews'] = public_reviews[:5]
+        context['rating_count'] = rating_stats['count'] or 0
+        context['average_rating_real'] = rating_stats['avg'] or profile.average_rating
+        context['completed_orders_real'] = completed_orders
+        return context
+
+
+# الدالة الديكورية للتحقق من الأدوار (سنستخدمها لاحقاً)
+def role_required(allowed_roles):
+    """
+    ديكوريتر للتحقق من دور المستخدم
+    Decorator to check user role
+    
+    Usage:
+        @role_required(['provider', 'admin'])
+        def my_view(request):
+            ...
+    """
+    def decorator(view_func):
+        def wrapped_view(request, *args, **kwargs):
+            if not request.user.is_authenticated:
+                messages.error(request, 'يجب تسجيل الدخول أولاً.')
+                return redirect('accounts:login')
+            
+            if request.user.role not in allowed_roles and not request.user.is_superuser:
+                messages.error(request, 'ليس لديك صلاحية للوصول لهذه الصفحة.')
+                return redirect('home')
+            
+            return view_func(request, *args, **kwargs)
+        return wrapped_view
+    return decorator
+
+
+@login_required
+def accept_commission_policy(request):
+    if not request.user.is_provider():
+        messages.error(request, 'هذه الصفحة لمقدمي الخدمات فقط.'); return redirect('home')
+    if request.method == 'POST':
+        terms = active_terms()
+        if not terms:
+            messages.error(request, 'لا توجد سياسة عمولة فعالة. يرجى انتظار الإدارة لإعدادها.')
+            return redirect('accounts:provider_profile_edit')
+        ip = request.META.get('HTTP_X_FORWARDED_FOR', request.META.get('REMOTE_ADDR', '')).split(',')[0] or None
+        acceptance, created = TermsAcceptance.objects.get_or_create(user=request.user, terms=terms, defaults={'commission_rate': terms.commission_rate, 'ip_address': ip})
+        if created:
+            from apps.core.services import notify
+            notify(request.user, 'commission_accepted', 'تم قبول سياسة العمولة', f'تم قبول عمولة المنصة بنسبة {terms.commission_rate}%.')
+        messages.success(request, 'تم حفظ موافقتك على سياسة العمولة.')
+    return redirect('accounts:provider_profile_edit')
+
+
+def _sync_provider_wallets(request, profile):
+    selected_ids = set(request.POST.getlist('wallets'))
+    active_wallets = Wallet.objects.filter(is_active=True)
+    active_ids = {str(wallet.pk) for wallet in active_wallets}
+    invalid_ids = selected_ids - active_ids
+    if invalid_ids:
+        raise ValidationError('تم اختيار محفظة غير نشطة أو غير موجودة.')
+    for wallet in active_wallets:
+        account_number = request.POST.get(f'wallet_account_{wallet.pk}', '').strip()
+        selected = str(wallet.pk) in selected_ids
+        if selected and not account_number:
+            raise ValidationError(f'رقم الحساب مطلوب لمحفظة {wallet.name}.')
+        if selected:
+            wallet_account, _ = ProviderWallet.objects.update_or_create(provider=profile, wallet=wallet, defaults={'account_number': account_number, 'is_active': True})
+            wallet_account.full_clean()
+            wallet_account.save()
+        else:
+            ProviderWallet.objects.filter(provider=profile, wallet=wallet).update(is_active=False)
+
+@login_required
+def provider_documents_view(request):
+    if not request.user.is_provider():
+        messages.error(request, 'هذه الصفحة لمقدمي الخدمات فقط.')
+        return redirect('home')
+    from .forms import ProviderDocumentForm
+    from .models import ProviderDocument
+    profile = services.get_provider_profile(request.user)
+    if request.method == 'POST':
+        form = ProviderDocumentForm(request.POST, request.FILES)
+        if form.is_valid():
+            doc = form.save(commit=False); doc.provider = profile; doc.save()
+            messages.success(request, 'تم رفع المستند وإرساله للمراجعة.')
+            return redirect('accounts:provider_documents')
+    else:
+        form = ProviderDocumentForm()
+    required_types = ProviderDocumentType.objects.filter(is_active=True, is_required=True)
+    uploaded_codes = set(ProviderDocument.objects.filter(provider=profile).values_list('document_type__code', flat=True))
+    missing_documents = required_types.exclude(code__in=uploaded_codes)
+    return render(request, 'accounts/provider_documents.html', {'form': form, 'documents': ProviderDocument.objects.filter(provider=profile).select_related('document_type'), 'required_types': required_types, 'missing_documents': missing_documents, 'missing_document_codes': set(missing_documents.values_list('code', flat=True))})
+
+@login_required
+def provider_submit_review(request):
+    if not request.user.is_provider():
+        messages.error(request, 'هذه الصفحة لمقدمي الخدمات فقط.'); return redirect('home')
+    profile = services.get_provider_profile(request.user)
+    if request.method == 'POST':
+        verification_form = ProviderVerificationRequestForm(request.POST, provider=profile)
+        if not verification_form.is_valid():
+            messages.error(request, 'اختر خدمات أساسية صالحة قبل إرسال طلب التوثيق.')
+            return redirect('accounts:provider_profile_edit')
+        checklist, can_submit = get_provider_onboarding_status(profile)
+        terms = active_terms()
+        if not terms or not TermsAcceptance.objects.filter(user=request.user, terms=terms).exists():
+            messages.error(request, 'يجب الموافقة على سياسة العمولة قبل إرسال الحساب للمراجعة.')
+            return redirect('accounts:provider_profile_edit')
+        if not can_submit:
+            missing = ', '.join([key for key, ok in checklist.items() if not ok])
+            messages.error(request, f'لا يمكن إرسال طلب المراجعة. أكمل المتطلبات الناقصة: {missing}')
+            return redirect('accounts:provider_profile_edit')
+        with transaction.atomic():
+            verification, _ = ProviderVerificationRequest.objects.update_or_create(
+                provider=profile,
+                status='pending',
+                defaults={'submitted_at': timezone.now()},
+            )
+            verification.requested_services.set(verification_form.cleaned_data['requested_services'])
+            verification.documents.set(ProviderDocument.objects.filter(provider=profile))
+            verification.refresh_snapshot()
+            verification.save(update_fields=['profile_snapshot', 'submitted_at', 'updated_at'])
+            profile.verification_status = 'pending_review'; profile.status = 'inactive'; profile.save(update_fields=['verification_status','status','updated_at'])
+        from apps.core.services import notify
+        for admin in User.objects.filter(is_staff=True): notify(admin,'provider_submitted','طلب توثيق جديد',f'{request.user.username} أرسل حسابه للمراجعة')
+        messages.success(request, 'تم إرسال ملفك للمراجعة.')
+    return redirect('accounts:profile')
+
+
+def districts_for_city(request):
+    """Small database-backed endpoint used by the location selects; no hard-coded data."""
+    from django.http import JsonResponse
+    from apps.core.models import District
+    city_id = request.GET.get('city')
+    districts = District.objects.filter(city_id=city_id, is_active=True).values('id', 'name') if city_id else []
+    return JsonResponse({'districts': list(districts)})
+
+
+@login_required
+def provider_dashboard(request):
+    if not request.user.is_provider():
+        messages.error(request, 'هذه الصفحة لمقدمي الخدمات فقط.')
+        return redirect('home')
+    from apps.orders.models import Order
+    from apps.marketplace.models import Service
+    from apps.payments.models import Payment
+    profile = services.get_provider_profile(request.user)
+    orders = Order.objects.filter(provider=request.user).select_related('customer', 'service')
+    reviews = request.user.reviews_received.filter(is_public=True)
+    paid_payments = Payment.objects.filter(order__provider=request.user, status=Payment.STATUS_PAID)
+    aggregates = paid_payments.aggregate(total_sales=Sum('amount'), platform_commission=Sum('commission_amount'), provider_earnings=Sum('provider_net_amount'))
+    pending_payments = Payment.objects.filter(order__provider=request.user, status__in=[Payment.STATUS_PENDING, Payment.STATUS_PROCESSING, Payment.STATUS_UNDER_REVIEW]).aggregate(total=Sum('amount'))['total']
+    context = {
+        'profile': profile,
+        'total_services': Service.objects.filter(provider=request.user).count(),
+        'active_services': Service.objects.filter(provider=request.user, status='active').count(),
+        'in_progress_services': orders.filter(status__in=[Order.STATUS_ACCEPTED, Order.STATUS_PAYMENT_PENDING, Order.STATUS_PAID, Order.STATUS_IN_PROGRESS, Order.STATUS_DELIVERED]).count(),
+        'total_orders': orders.count(),
+        'completed_services': orders.filter(status=Order.STATUS_COMPLETED).count(),
+        'cancelled_orders': orders.filter(status=Order.STATUS_CANCELLED).count(),
+        'new_orders': orders.filter(status=Order.STATUS_PENDING).count(),
+        'total_sales': aggregates['total_sales'] or 0,
+        'platform_commission': aggregates['platform_commission'] or 0,
+        'provider_earnings': aggregates['provider_earnings'] or 0,
+        'paid_amounts': aggregates['total_sales'] or 0,
+        'pending_amounts': pending_payments or 0,
+        'customers_count': orders.values('customer_id').distinct().count(),
+        'rating_count': reviews.count(),
+        'average_rating': reviews.aggregate(avg=Avg('provider_rating'))['avg'] or profile.average_rating,
+        'recent_orders': orders.order_by('-created_at')[:8],
+    }
+    return render(request, 'accounts/provider_dashboard.html', context)
+
+
+@login_required
+def provider_customers(request):
+    if not request.user.is_provider():
+        messages.error(request, 'هذه الصفحة لمقدمي الخدمات فقط.')
+        return redirect('home')
+    from apps.orders.models import Order
+    orders = Order.objects.filter(provider=request.user).select_related('customer', 'service').order_by('-created_at')
+    grouped = {}
+    for order in orders:
+        row = grouped.setdefault(order.customer_id, {'customer': order.customer, 'orders_count': 0, 'latest_order': order, 'services': set(), 'last_status': order.get_status_display()})
+        row['orders_count'] += 1
+        if order.service:
+            row['services'].add(order.service.title)
+    return render(request, 'accounts/provider_customers.html', {'orders': orders, 'customer_rows': grouped.values()})
+
+
+@login_required
+def provider_document_download(request, pk):
+    document = get_object_or_404(ProviderDocument, pk=pk)
+    if not document.can_be_viewed_by(request.user):
+        messages.error(request, 'ليس لديك صلاحية لعرض هذا المستند.')
+        return redirect('home')
+    from django.http import FileResponse, Http404
+    filename = Path(document.file.name).name
+    try:
+        if document.file.storage.exists(document.file.name):
+            return FileResponse(document.file.open('rb'), as_attachment=True, filename=filename)
+        legacy_path = Path(settings.MEDIA_ROOT) / document.file.name
+        if legacy_path.exists() and legacy_path.is_file():
+            return FileResponse(legacy_path.open('rb'), as_attachment=True, filename=filename)
+    except FileNotFoundError as exc:
+        raise Http404('المستند غير موجود في التخزين.') from exc
+    raise Http404('المستند غير موجود في التخزين.')

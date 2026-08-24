@@ -1,0 +1,153 @@
+{% extends 'base.html' %}
+
+{% block title %}تسجيل الدخول - منصة سوق الخدمات{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center align-items-center" style="min-height: 70vh;">
+        <div class="col-md-6 col-lg-5">
+            <!-- بطاقة تسجيل الدخول -->
+            <div class="card border-0 shadow-lg overflow-hidden">
+                <!-- Header مع Gradient -->
+                <div class="card-header text-center p-4" style="background: var(--gradient-purple); border: none;">
+                    <div class="login-icon">
+                        <i class="bi bi-shield-lock"></i>
+                    </div>
+                    <h2 class="fw-bold text-white mt-3 mb-2">تسجيل الدخول</h2>
+                    <p class="text-white-50 mb-0">مرحباً بعودتك!</p>
+                </div>
+
+                <div class="card-body p-5">
+                    <!-- نموذج تسجيل الدخول -->
+                    <form method="post">
+                        {% csrf_token %}
+
+                        <!-- اسم المستخدم -->
+                        <div class="mb-4">
+                            <label for="{{ form.username.id_for_label }}" class="form-label fw-bold">
+                                <i class="bi bi-person ms-2"></i>
+                                اسم المستخدم
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0">
+                                    <i class="bi bi-person"></i>
+                                </span>
+                                {{ form.username }}
+                            </div>
+                            {% if form.username.errors %}
+                            <div class="text-danger small mt-2">
+                                <i class="bi bi-exclamation-circle ms-1"></i>
+                                {{ form.username.errors.0 }}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- كلمة المرور -->
+                        <div class="mb-4">
+                            <label for="{{ form.password.id_for_label }}" class="form-label fw-bold">
+                                <i class="bi bi-lock ms-2"></i>
+                                كلمة المرور
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0">
+                                    <i class="bi bi-lock"></i>
+                                </span>
+                                {{ form.password }}
+                            </div>
+                            {% if form.password.errors %}
+                            <div class="text-danger small mt-2">
+                                <i class="bi bi-exclamation-circle ms-1"></i>
+                                {{ form.password.errors.0 }}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- تذكرني -->
+                        <div class="mb-4 form-check">
+                            <input type="checkbox" class="form-check-input" id="rememberMe" name="remember">
+                            <label class="form-check-label" for="rememberMe">
+                                تذكرني
+                            </label>
+                        </div>
+
+                        <!-- زر تسجيل الدخول -->
+                        <button type="submit" class="btn btn-primary btn-lg w-100 mb-3">
+                            <i class="bi bi-box-arrow-in-left ms-2"></i>
+                            تسجيل الدخول
+                        </button>
+
+                        <!-- فاصل -->
+                        <div class="divider my-4">
+                            <span>أو</span>
+                        </div>
+
+                        <!-- روابط إضافية -->
+                        <div class="text-center">
+                            <p class="text-muted mb-0">
+                                ليس لديك حساب؟
+                                <a href="{% url 'accounts:register' %}" class="text-decoration-none fw-bold">
+                                    سجل الآن
+                                </a>
+                            </p>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- معلومات إضافية -->
+            <div class="text-center mt-4">
+                <p class="text-muted small">
+                    <i class="bi bi-shield-check ms-2"></i>
+                    معلوماتك محمية ومشفرة بالكامل
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .login-icon {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 2.5rem;
+        backdrop-filter: blur(10px);
+    }
+
+    .input-group-text {
+        border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+        border: 2px solid var(--gray-200);
+        border-left: none;
+    }
+
+    .input-group .form-control {
+        border-radius: 0 var(--radius-lg) var(--radius-lg) 0 !important;
+        border-right: none;
+    }
+
+    .divider {
+        display: flex;
+        align-items: center;
+        text-align: center;
+    }
+
+    .divider::before,
+    .divider::after {
+        content: '';
+        flex: 1;
+        border-bottom: 1px solid var(--gray-300);
+    }
+
+    .divider span {
+        padding: 0 1rem;
+        color: var(--gray-500);
+        font-size: 0.875rem;
+    }
+</style>
+{% endblock %}

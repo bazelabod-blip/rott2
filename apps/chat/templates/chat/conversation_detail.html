@@ -1,0 +1,347 @@
+{% extends 'base.html' %}
+
+{% block title %}محادثة مع {{ other_user.get_full_name|default:other_user.username }} - منصة سوق الخدمات{% endblock %}
+
+{% block content %}
+<div class="chat-page">
+    <div class="container-fluid h-100">
+        <div class="row h-100">
+            <!-- Chat Header -->
+            <div class="col-12">
+                <div class="chat-header">
+                    <div class="d-flex align-items-center">
+                        <a href="{% url 'chat:conversation_list' %}" class="back-btn">
+                            <i class="bi bi-arrow-right"></i>
+                        </a>
+                        <div class="user-avatar-circle">
+                            {{ other_user.username|first|upper }}
+                        </div>
+                        <div class="user-info-header">
+                            <h5 class="mb-0">{{ other_user.get_full_name|default:other_user.username }}</h5>
+                            <small>
+                                {% if other_user.is_provider %}
+                                <i class="bi bi-briefcase"></i> مقدم خدمة
+                                {% else %}
+                                <i class="bi bi-person"></i> عميل
+                                {% endif %}
+                            </small>
+                        </div>
+                        <div class="ms-auto">
+                            <a href="{% if other_user.is_provider %}{% url 'accounts:provider_detail' other_user.id %}{% else %}{% url 'accounts:profile' %}{% endif %}"
+                                class="profile-link-btn">
+                                <i class="bi bi-person-circle"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Messages Area -->
+            <div class="col-12">
+                <div class="messages-area" id="messages-container">
+                    {% if messages_list %}
+                    {% for message in messages_list %}
+                    <div class="message-row {% if message.sender == user %}sent{% else %}received{% endif %}">
+                        <div class="message-box">
+                            <div class="message-text">{{ message.content }}</div>
+                            <div class="message-time">
+                                {{ message.created_at|date:"H:i" }}
+                                {% if message.sender == user and message.is_read %}
+                                <i class="bi bi-check-all"></i>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <div class="empty-messages">
+                        <i class="bi bi-chat-text"></i>
+                        <p>ابدأ المحادثة بإرسال رسالة</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Message Input -->
+            <div class="col-12">
+                <div class="message-input-area">
+                    <form method="post" id="message-form">
+                        {% csrf_token %}
+                        <div class="input-container">
+                            {{ form.content }}
+                            <button type="submit" class="send-btn">
+                                <i class="bi bi-send-fill"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Page Layout */
+    .chat-page {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: #f0f2f5;
+        padding-top: 70px;
+    }
+
+    /* Chat Header */
+    .chat-header {
+        position: fixed;
+        top: 56px;
+        left: 0;
+        right: 0;
+        background: white;
+        padding: 1rem 1.5rem;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        z-index: 100;
+    }
+
+    .back-btn {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #f0f2f5;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #6366f1;
+        text-decoration: none;
+        margin-left: 1rem;
+    }
+
+    .back-btn:hover {
+        background: #e5e7eb;
+    }
+
+    .user-avatar-circle {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        font-weight: bold;
+        margin-left: 1rem;
+    }
+
+    .user-info-header h5 {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #1f2937;
+    }
+
+    .user-info-header small {
+        color: #6b7280;
+        font-size: 0.85rem;
+    }
+
+    .profile-link-btn {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #f0f2f5;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #6366f1;
+        text-decoration: none;
+        font-size: 1.25rem;
+    }
+
+    .profile-link-btn:hover {
+        background: #e5e7eb;
+    }
+
+    /* Messages Area */
+    .messages-area {
+        height: calc(100vh - 240px);
+        overflow-y: auto;
+        padding: 1.5rem;
+        margin-top: 80px;
+        margin-bottom: 80px;
+    }
+
+    .message-row {
+        display: flex;
+        margin-bottom: 1rem;
+    }
+
+    .message-row.sent {
+        justify-content: flex-start;
+    }
+
+    .message-row.received {
+        justify-content: flex-end;
+    }
+
+    .message-box {
+        max-width: 70%;
+        padding: 0.875rem 1.125rem;
+        border-radius: 18px;
+        word-wrap: break-word;
+    }
+
+    .message-row.sent .message-box {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-bottom-left-radius: 4px;
+    }
+
+    .message-row.received .message-box {
+        background: white;
+        color: #1f2937;
+        border-bottom-right-radius: 4px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    }
+
+    .message-text {
+        font-size: 0.95rem;
+        line-height: 1.5;
+        margin-bottom: 0.25rem;
+    }
+
+    .message-time {
+        font-size: 0.7rem;
+        opacity: 0.8;
+        text-align: left;
+    }
+
+    .message-row.received .message-time {
+        text-align: right;
+        color: #6b7280;
+    }
+
+    .empty-messages {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        color: #9ca3af;
+    }
+
+    .empty-messages i {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+    }
+
+    .empty-messages p {
+        font-size: 1.1rem;
+    }
+
+    /* Message Input Area */
+    .message-input-area {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: white;
+        padding: 1rem 1.5rem;
+        box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+        z-index: 100;
+    }
+
+    .input-container {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .input-container textarea {
+        flex: 1;
+        border: 2px solid #e5e7eb;
+        border-radius: 25px;
+        padding: 0.75rem 1.25rem;
+        font-size: 0.95rem;
+        resize: none;
+        height: 50px;
+        outline: none;
+    }
+
+    .input-container textarea:focus {
+        border-color: #6366f1;
+    }
+
+    .send-btn {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+        cursor: pointer;
+    }
+
+    .send-btn:hover {
+        transform: scale(1.05);
+    }
+
+    /* Scrollbar */
+    .messages-area::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .messages-area::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .messages-area::-webkit-scrollbar-thumb {
+        background: #d1d5db;
+        border-radius: 10px;
+    }
+
+    .messages-area::-webkit-scrollbar-thumb:hover {
+        background: #9ca3af;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .chat-header {
+            padding: 0.75rem 1rem;
+        }
+
+        .messages-area {
+            padding: 1rem;
+            margin-top: 70px;
+        }
+
+        .message-box {
+            max-width: 85%;
+        }
+    }
+</style>
+
+<script>
+    // Auto scroll to bottom
+    document.addEventListener('DOMContentLoaded', function () {
+        const container = document.getElementById('messages-container');
+        if (container) {
+            container.scrollTop = container.scrollHeight;
+        }
+    });
+
+    // Auto resize textarea
+    const textarea = document.querySelector('textarea');
+    if (textarea) {
+        textarea.addEventListener('input', function () {
+            this.style.height = '50px';
+            this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+        });
+    }
+</script>
+{% endblock %}

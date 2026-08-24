@@ -1,0 +1,140 @@
+<!-- عرض رسائل النظام (نجاح، خطأ، تحذير، معلومات) -->
+{% if messages %}
+<div class="container mt-3">
+    <div class="messages-container">
+        {% for message in messages %}
+        <div class="alert-modern alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            <div class="alert-content">
+                <!-- أيقونات حسب نوع الرسالة -->
+                <div class="alert-icon">
+                    {% if message.tags == 'success' %}
+                    <i class="bi bi-check-circle-fill"></i>
+                    {% elif message.tags == 'danger' or message.tags == 'error' %}
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                    {% elif message.tags == 'warning' %}
+                    <i class="bi bi-exclamation-circle-fill"></i>
+                    {% elif message.tags == 'info' %}
+                    <i class="bi bi-info-circle-fill"></i>
+                    {% endif %}
+                </div>
+
+                <div class="alert-text">
+                    <strong>{{ message }}</strong>
+                </div>
+            </div>
+
+            <!-- زر الإغلاق -->
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="إغلاق"></button>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<style>
+    .messages-container {
+        position: fixed;
+        top: 80px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 9999;
+        max-width: 600px;
+        width: 90%;
+    }
+
+    .alert-modern {
+        border: none;
+        border-radius: var(--radius-xl);
+        padding: 1rem 1.5rem;
+        box-shadow: var(--shadow-2xl);
+        margin-bottom: 1rem;
+        animation: slideInRight 0.5s ease;
+        backdrop-filter: blur(10px);
+    }
+
+    .alert-modern.alert-success {
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.95) 0%, rgba(5, 150, 105, 0.95) 100%);
+        color: white;
+    }
+
+    .alert-modern.alert-danger,
+    .alert-modern.alert-error {
+        background: linear-gradient(135deg, rgba(239, 68, 68, 0.95) 0%, rgba(220, 38, 38, 0.95) 100%);
+        color: white;
+    }
+
+    .alert-modern.alert-warning {
+        background: linear-gradient(135deg, rgba(245, 158, 11, 0.95) 0%, rgba(217, 119, 6, 0.95) 100%);
+        color: white;
+    }
+
+    .alert-modern.alert-info {
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.95) 0%, rgba(37, 99, 235, 0.95) 100%);
+        color: white;
+    }
+
+    .alert-content {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .alert-icon {
+        font-size: 1.5rem;
+        flex-shrink: 0;
+    }
+
+    .alert-text {
+        flex: 1;
+    }
+
+    .alert-modern .btn-close {
+        filter: brightness(0) invert(1);
+        opacity: 0.8;
+    }
+
+    .alert-modern .btn-close:hover {
+        opacity: 1;
+    }
+
+    @keyframes slideInRight {
+        from {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Auto-hide after 5 seconds */
+    .alert-modern {
+        animation: slideInRight 0.5s ease, fadeOut 0.5s ease 5s forwards;
+    }
+
+    @keyframes fadeOut {
+        from {
+            opacity: 1;
+        }
+
+        to {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+    }
+</style>
+
+<script>
+    // Auto-dismiss alerts after 5 seconds
+    document.addEventListener('DOMContentLoaded', function () {
+        const alerts = document.querySelectorAll('.alert-modern');
+        alerts.forEach(alert => {
+            setTimeout(() => {
+                const bsAlert = new bootstrap.Alert(alert);
+                bsAlert.close();
+            }, 5000);
+        });
+    });
+</script>

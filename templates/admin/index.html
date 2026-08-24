@@ -1,0 +1,12 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+{% block content %}
+{% if platform_stats %}
+<div class="admin-stat-grid">
+  <div><span>المستخدمون</span><strong>{{ platform_stats.users }}</strong></div><div><span>مقدمو الخدمات</span><strong>{{ platform_stats.providers }}</strong></div><div><span>العملاء</span><strong>{{ platform_stats.customers }}</strong></div><div><span>مقدمون موثقون</span><strong>{{ platform_stats.verified_providers }}</strong></div><div><span>قيد التوثيق</span><strong>{{ platform_stats.pending_verification }}</strong></div><div><span>الخدمات</span><strong>{{ platform_stats.total_services }}</strong></div><div><span>الخدمات النشطة</span><strong>{{ platform_stats.active_services }}</strong></div><div><span>الطلبات</span><strong>{{ platform_stats.total_orders }}</strong></div><div><span>طلبات مكتملة</span><strong>{{ platform_stats.completed_orders }}</strong></div><div><span>طلبات معلقة</span><strong>{{ platform_stats.pending_orders }}</strong></div><div><span>طلبات ملغية</span><strong>{{ platform_stats.cancelled_orders }}</strong></div><div><span>إجمالي المبيعات</span><strong>{{ platform_stats.total_sales }}</strong></div><div><span>عمولة المنصة</span><strong>{{ platform_stats.platform_commission }}</strong></div><div><span>أرباح المقدمين</span><strong>{{ platform_stats.provider_earnings }}</strong></div>
+</div>
+{% endif %}
+<div id="content-main">
+  {% include "admin/app_list.html" with app_list=app_list show_changelinks=True %}
+</div>
+{% endblock %}

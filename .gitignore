@@ -1,0 +1,64 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environments
+venv/
+.venv/
+.venv_old/
+venv_old/
+env/
+ENV/
+
+# Environment variables / secrets
+.env
+.env.*
+!.env.example
+
+# Database
+*.sqlite3
+db.sqlite3
+db.sqlite3-journal
+
+# Django generated files
+/staticfiles/
+/mediafiles/
+/static_root/
+/media_root/
+
+# User uploaded media
+/media/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Testing / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Build / packaging
+build/
+dist/
+*.egg-info/
+
+# Project-specific files
+Tracking Human Intellgance System Thesis.pdf
+extract_chapter3.py
+extract_pdf.py
+
+# Private uploaded documents
+/private_media/

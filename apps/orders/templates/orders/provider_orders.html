@@ -1,0 +1,129 @@
+{% extends 'base.html' %}
+
+{% block title %}طلباتي - مقدم الخدمة{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <!-- العنوان -->
+    <div class="text-center mb-5">
+        <h2 class="fw-bold display-6 mb-2">
+            <i class="bi bi-clipboard-check ms-2 text-gradient"></i>
+            الطلبات الواردة
+        </h2>
+        <p class="text-muted">إدارة ومتابعة جميع الطلبات على خدماتك</p>
+    </div>
+
+    <!-- إحصائيات -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-lg text-center hover-lift h-100">
+                <div class="card-body p-4">
+                    <div class="stat-icon mb-3" style="background: var(--gradient-pink);">
+                        <i class="bi bi-hourglass-split"></i>
+                    </div>
+                    <h3 class="fw-bold mb-0 text-gradient">{{ pending_count }}</h3>
+                    <p class="text-muted small mb-0">في الانتظار</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-lg text-center hover-lift h-100">
+                <div class="card-body p-4">
+                    <div class="stat-icon mb-3" style="background: var(--gradient-blue);">
+                        <i class="bi bi-arrow-repeat"></i>
+                    </div>
+                    <h3 class="fw-bold mb-0 text-gradient">{{ in_progress_count }}</h3>
+                    <p class="text-muted small mb-0">قيد التنفيذ</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-lg text-center hover-lift h-100">
+                <div class="card-body p-4">
+                    <div class="stat-icon mb-3" style="background: var(--gradient-success);">
+                        <i class="bi bi-check-circle"></i>
+                    </div>
+                    <h3 class="fw-bold mb-0 text-gradient">{{ completed_count }}</h3>
+                    <p class="text-muted small mb-0">مكتملة</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- قائمة الطلبات -->
+    {% if orders %}
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+        {% for order in orders %}
+        {% include 'orders/partials/order_card.html' %}
+        {% endfor %}
+    </div>
+
+    {% if is_paginated %}
+    <nav class="mt-5">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}">
+                    <i class="bi bi-chevron-right"></i> السابقة
+                </a>
+            </li>
+            {% endif %}
+
+            <li class="page-item active">
+                <span class="page-link">{{ page_obj.number }}</span>
+            </li>
+
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}">
+                    التالية <i class="bi bi-chevron-left"></i>
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon">
+            <i class="bi bi-inbox"></i>
+        </div>
+        <h4 class="fw-bold mb-2">لا توجد طلبات بعد</h4>
+        <p class="text-muted">سيظهر هنا الطلبات الواردة على خدماتك</p>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+    .stat-icon {
+        width: 70px;
+        height: 70px;
+        margin: 0 auto;
+        border-radius: var(--radius-xl);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 2rem;
+        box-shadow: var(--shadow-md);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 5rem 2rem;
+    }
+
+    .empty-icon {
+        width: 120px;
+        height: 120px;
+        margin: 0 auto 2rem;
+        border-radius: 50%;
+        background: var(--gray-100);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--gray-400);
+        font-size: 4rem;
+    }
+</style>
+{% endblock %}

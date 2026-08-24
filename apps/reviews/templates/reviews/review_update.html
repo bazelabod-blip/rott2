@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+
+{% block title %}تعديل التقييم{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h3 class="fw-bold mb-4">تعديل التقييم</h3>
+
+                    <form method="post">
+                        {% csrf_token %}
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">{{ form.service_rating.label }}</label>
+                            {{ form.service_rating }}
+                            {% if form.service_rating.errors %}
+                            <div class="text-danger small">{{ form.service_rating.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">{{ form.provider_rating.label }}</label>
+                            {{ form.provider_rating }}
+                            {% if form.provider_rating.errors %}
+                            <div class="text-danger small">{{ form.provider_rating.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">{{ form.comment.label }}</label>
+                            {{ form.comment }}
+                            {% if form.comment.errors %}
+                            <div class="text-danger small">{{ form.comment.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-4 form-check">
+                            {{ form.is_public }}
+                            <label class="form-check-label" for="{{ form.is_public.id_for_label }}">
+                                {{ form.is_public.label }}
+                            </label>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi  bi-check-circle ms-2"></i>
+                                حفظ التغييرات
+                            </button>
+                            <a href="{% url 'orders:order_detail' object.order.order_number %}"
+                                class="btn btn-outline-secondary">
+                                إلغاء
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

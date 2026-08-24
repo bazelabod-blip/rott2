@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+
+{% block title %}تقييمات {{ service.title }}{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <h2 class="fw-bold mb-4">تقييمات الخدمة: {{ service.title }}</h2>
+
+    <!-- ملخص التقييمات -->
+    {% if total_reviews %}
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4 text-center">
+                    <h1 class="display-4 text-primary">{{ service.average_rating|floatformat:1 }}</h1>
+                    <div class="text-warning mb-2">
+                        {% for i in "12345" %}
+                        {% if forloop.counter <= service.average_rating %} ⭐ {% else %} ☆ {% endif %} {% endfor %}
+                            </div>
+                            <p class="text-muted">{{ total_reviews }} تقييم</p>
+                    </div>
+
+                    <div class="col-md-8">
+                        {% for rating, count in rating_distribution.items %}
+                        <div class="d-flex align-items-center mb-2">
+                            <span class="me-2">{{ rating }}⭐</span>
+                            <div class="progress flex-grow-1 me-2">
+                                <div class="progress-bar" role="progressbar"
+                                    style="width: {% widthratio count total_reviews 100 %}%"></div>
+                            </div>
+                            <span class="small text-muted">{{ count }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- قائمة التقييمات -->
+        {% if reviews %}
+        {% for review in reviews %}
+        {% include 'reviews/partials/review_card.html' %}
+        {% endfor %}
+
+        <!-- Pagination -->
+        {% if is_paginated %}
+        <nav class="mt-4">
+            <ul class="pagination justify-content-center">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}">السابقة</a>
+                </li>
+                {% endif %}
+
+                <li class="page-item active">
+                    <span class="page-link">{{ page_obj.number }}</span>
+                </li>
+
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}">التالية</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+        {% else %}
+        <div class="text-center py-5">
+            <i class="bi bi-star text-muted" style="font-size: 4rem;"></i>
+            <h4 class="mt-3">لا توجد تقييمات بعد</h4>
+            <p class="text-muted">كن أول من يقيّم هذه الخدمة!</p>
+        </div>
+        {% endif %}
+    </div>
+    {% endblock %}
