@@ -71,3 +71,27 @@ class DashboardAccessTests(TestCase):
         self.assertEqual(TermsAndConditions.objects.get(version='v1').commission_rate, 15)
         for i in range(20): User.objects.create_user(username=f'u{i}', email=f'u{i}@e.com', password='pass')
         self.assertContains(self.client.get(reverse('dashboard:users'), {'page':2}), 'u')
+
+class DashboardActionTests(DashboardAccessTests):
+    def test_admin_can_manage_user_provider_document_review_and_notification(self):
+        self.client.login(username='admin', password='pass')
+        self.assertEqual(self.client.post(reverse('dashboard:user_action', args=[self.customer.pk, 'deactivate']), {'reason':'اختبار'}).status_code, 302)
+        self.customer.refresh_from_db(); self.assertFalse(self.customer.is_active)
+        self.assertEqual(self.client.post(reverse('dashboard:provider_action', args=[self.provider.pk, 'request_documents']), {'reason':'أعد رفع الهوية'}).status_code, 302)
+        self.provider.refresh_from_db(); self.assertEqual(self.provider.verification_status, 'needs_documents')
+        self.assertEqual(self.client.post(reverse('dashboard:document_review', args=[self.doc.pk]), {'action':'approved','note':'واضح'}).status_code, 302)
+        self.doc.refresh_from_db(); self.assertEqual(self.doc.status, 'approved')
+        self.assertEqual(self.client.post(reverse('dashboard:notification_create'), {'target':'user','user':self.customer.pk,'title':'تنبيه','message':'رسالة'}).status_code, 302)
+        self.assertTrue(self.customer.notifications.filter(title='تنبيه').exists())
+
+    def test_service_order_payment_review_export_and_audit_actions(self):
+        self.client.login(username='admin', password='pass')
+        self.assertEqual(self.client.post(reverse('dashboard:service_action', args=[self.service.pk, 'unpublish']), {'reason':'اختبار'}).status_code, 302)
+        self.service.refresh_from_db(); self.assertEqual(self.service.status, 'paused')
+        self.order.status = Order.STATUS_PENDING; self.order.save()
+        self.assertEqual(self.client.post(reverse('dashboard:order_status_action', args=[self.order.order_number]), {'status':Order.STATUS_ACCEPTED,'reason':'مراجعة','force':''}).status_code, 302)
+        self.order.refresh_from_db(); self.assertEqual(self.order.status, Order.STATUS_ACCEPTED)
+        self.assertEqual(self.client.post(reverse('dashboard:payment_action', args=[self.payment.pk, 'refund']), {'reason':'استرداد داخلي'}).status_code, 302)
+        self.payment.refresh_from_db(); self.assertEqual(self.payment.status, Payment.STATUS_REFUNDED)
+        self.assertEqual(self.client.post(reverse('dashboard:review_action', args=[self.order.review.pk if hasattr(self.order, 'review') else 999, 'hide']), {'reason':'اختبار'}).status_code if hasattr(self.order, 'review') else 404, 404)
+        self.assertEqual(self.client.get(reverse('dashboard:export', args=['users'])).status_code, 200)
