@@ -13,6 +13,7 @@ install_admin_dashboard()
 urlpatterns = [
     # لوحة تحكم Django الإدارية
     path('admin/', admin.site.urls),
+    path('dashboard/', include('apps.dashboard.urls')),
     
     # الصفحة الرئيسية
     path('', home_view, name='home'),
