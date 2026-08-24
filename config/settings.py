@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'apps.chat',
     'apps.core',
     'apps.payments',
+    'apps.dashboard',
 ]
 
 if importlib.util.find_spec('jazzmin'):
